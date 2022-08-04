@@ -4,7 +4,7 @@ export const CDN_URL = "http://dfp529wcvahka.cloudfront.net";
 export const OLDEST_RANK_LIMIT = 25;
 
 // Format used for storing oldest times
-export const TIME_FORMAT = "dd/mm/yy-HH:MM:ss";
+export const TIME_FORMAT = "dd/mm/yy-HH:MM";
 
 // Data folder
 export const DATA_DIR = "data";

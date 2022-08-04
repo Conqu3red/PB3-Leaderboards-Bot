@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import { CampaignLevelInfo, Leaderboard, LeaderboardEntry, LevelLeaderboards, OldestEntry } from "../src/LeaderboardInterface";
-import { CampaignLevel, updateOldestDataAndPurgeCheated } from "../src/Level";
+import { updateOldestDataAndPurgeCheated } from "../src/LeaderboardProcessors";
+import { CampaignLevel } from "../src/CampaignLevel";
 import { Remote } from "../src/RemoteLeaderboardInterface";
 import assert from "assert";
 

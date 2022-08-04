@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import { CampaignLevelInfo, LevelLeaderboards } from "./LeaderboardInterface";
-import { CampaignLevel } from "./Level";
+import { CampaignLevel } from "./CampaignLevel";
 
 (async () => {
     let a: LevelLeaderboards = JSON.parse(await fs.readFile("data/mAp2V.json", "utf-8"));
