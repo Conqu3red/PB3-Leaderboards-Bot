@@ -13,10 +13,6 @@ export interface Leaderboard {
 }
 
 export interface LeaderboardEntry extends Remote.LeaderboardEntry {
-    id: string;
-    owner: Remote.User;
-    value: number;
-    didBreak: boolean;
     rank: number;
 }
 
