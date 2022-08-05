@@ -1,4 +1,3 @@
-
 import { Remote } from "./RemoteLeaderboardInterface";
 
 export interface LevelLeaderboards {

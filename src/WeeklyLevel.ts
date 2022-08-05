@@ -14,7 +14,7 @@ export class WeeklyLevel extends BaseLevel {
     info: WeeklyLevelInfo;
 
     static generateLevelDownloadUrl(id: string) {
-        return `${CDN_URL}/manifests/leaderboards/challenges/scores/${id}.json`
+        return `${CDN_URL}/manifests/leaderboards/challenges/scores/${id}.json`;
     }
 
     constructor(info: WeeklyLevelInfo, reloadIntervalMs: number) {
@@ -24,18 +24,20 @@ export class WeeklyLevel extends BaseLevel {
 
     async reload() {
         // TODO
-        let leaderboards = await fetchRemoteLeaderboard(WeeklyLevel.generateLevelDownloadUrl(this.info.id));
-        
+        let leaderboards = await fetchRemoteLeaderboard(
+            WeeklyLevel.generateLevelDownloadUrl(this.info.id)
+        );
+
         this.reload_using(leaderboards);
     }
 
     async reload_using(leaderboards: Remote.LevelLeaderboards) {
         let current = await this.getLeaderboard();
-        
+
         let processed: LevelLeaderboards = {
             any: processRemoteLeaderboard(leaderboards.any),
             unbroken: processRemoteLeaderboard(leaderboards.unbroken),
-        }
+        };
 
         // Weekly levels do not keep track of oldest data.
 
@@ -47,7 +49,4 @@ export class WeeklyLevel extends BaseLevel {
     file(): string {
         return filenameFromWeeklyLevelInfo(this.info);
     }
-    
-    
-
 }

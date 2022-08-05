@@ -14,7 +14,7 @@ export class CampaignLevel extends BaseLevel {
     info: CampaignLevelInfo;
 
     static generateLevelDownloadUrl(id: string) {
-        return `${CDN_URL}/manifests/leaderboards/scores/${id}.json`
+        return `${CDN_URL}/manifests/leaderboards/scores/${id}.json`;
     }
 
     constructor(info: CampaignLevelInfo, reloadIntervalMs: number) {
@@ -24,17 +24,20 @@ export class CampaignLevel extends BaseLevel {
 
     async reload() {
         // TODO
-        let leaderboards = await fetchRemoteLeaderboard(CampaignLevel.generateLevelDownloadUrl(this.info.id));
+        let leaderboards = await fetchRemoteLeaderboard(
+            CampaignLevel.generateLevelDownloadUrl(this.info.id)
+        );
         this.reload_using(leaderboards);
     }
 
     async reload_using(leaderboards: Remote.LevelLeaderboards, carryOldest: boolean = true) {
         let current = await this.getLeaderboard();
-        
+
         let processed: LevelLeaderboards = {
             any: processRemoteLeaderboard(leaderboards.any),
             unbroken: processRemoteLeaderboard(leaderboards.unbroken),
-        }
+        };
+
         if (carryOldest) {
             updateOldestDataAndPurgeCheated(current.any, processed.any);
             updateOldestDataAndPurgeCheated(current.unbroken, processed.unbroken);

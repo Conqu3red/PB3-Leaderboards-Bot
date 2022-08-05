@@ -1,5 +1,4 @@
 export namespace Remote {
-
     export interface LevelLeaderboards {
         any: Leaderboard;
         unbroken: Leaderboard;
@@ -25,5 +24,4 @@ export namespace Remote {
         value: number;
         didBreak: boolean;
     }
-
 }

@@ -2,22 +2,18 @@ import path from "path";
 import axios from "axios";
 import { DateTime } from "luxon";
 import { Remote } from "./RemoteLeaderboardInterface";
-import {
-    ShortLevelIdentifier,
-    LevelLeaderboards
-} from "./LeaderboardInterface";
+import { ShortLevelIdentifier, LevelLeaderboards } from "./LeaderboardInterface";
 
 import fs from "fs";
 
 export function tryGetShortLevelIdentifier(short_name: string): ShortLevelIdentifier | null {
-
     let match = short_name.match(/(\d+)-(\d+)(c?)/i);
     if (match != null) {
         let ident: ShortLevelIdentifier = {
             world: parseInt(match[1]),
             level: parseInt(match[2]),
             isChallenge: match[3].length > 0,
-        }
+        };
 
         if (ident.level !== NaN && ident.level !== NaN) return ident;
     }
@@ -59,8 +55,16 @@ export abstract class BaseLevel {
             data = JSON.parse(await fs.promises.readFile(filePath, "utf8"));
         } catch {
             data = {
-                any: {top1000: [], top_history: undefined, metadata: {uniqueRanksCount: 0}},
-                unbroken: {top1000: [], top_history: undefined, metadata: {uniqueRanksCount: 0}}
+                any: {
+                    top1000: [],
+                    top_history: undefined,
+                    metadata: { uniqueRanksCount: 0 },
+                },
+                unbroken: {
+                    top1000: [],
+                    top_history: undefined,
+                    metadata: { uniqueRanksCount: 0 },
+                },
             };
         }
         this.cachedLeaderboard = data;
@@ -70,15 +74,15 @@ export abstract class BaseLevel {
     async saveCachedLeaderboard() {
         if (this.cachedLeaderboard != null) {
             const filePath = this.file();
-            
+
             await fs.promises.writeFile(filePath, JSON.stringify(this.cachedLeaderboard), "utf-8");
         }
     }
 
     async getLeaderboard(): Promise<LevelLeaderboards> {
-        console.log(`cached leaderboard: ${this.cachedLeaderboard}`)
+        console.log(`cached leaderboard: ${this.cachedLeaderboard}`);
         if (this.cachedLeaderboard != null) {
-            return this.cachedLeaderboard
+            return this.cachedLeaderboard;
         }
         return this.loadLeaderboardFromFile();
     }
