@@ -7,7 +7,7 @@ import {
     OldestEntry,
 } from "../src/LeaderboardInterface";
 import { updateOldestDataAndPurgeCheated } from "../src/LeaderboardProcessors";
-import { CampaignLevel } from "../src/CampaignLevel";
+import { CampaignLevel } from "../src/resources/CampaignLevel";
 import { Remote } from "../src/RemoteLeaderboardInterface";
 import assert from "assert";
 
@@ -20,25 +20,6 @@ function getTestLevel(): CampaignLevel {
     };
 
     return new CampaignLevel(levelInfo, 8 * 60 * 60 * 60 * 1000);
-}
-
-async function reloadAny(
-    level: CampaignLevel,
-    scores: Remote.LeaderboardEntry[],
-    processOldest: boolean = true
-): Promise<LevelLeaderboards> {
-    await level.reload_using(
-        {
-            any: {
-                top1000: scores,
-                metadata: { uniqueRanksCount: scores.length },
-            },
-            unbroken: { top1000: [], metadata: { uniqueRanksCount: 0 } },
-        },
-        processOldest
-    );
-
-    return await level.getLeaderboard();
 }
 
 function board(

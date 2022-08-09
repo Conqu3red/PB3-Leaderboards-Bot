@@ -1,4 +1,4 @@
-import { CampaignLevel } from "./CampaignLevel";
+import { CampaignLevel } from "./resources/CampaignLevel";
 
 class LevelManager {
     constructor() {}

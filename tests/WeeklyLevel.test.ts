@@ -1,4 +1,3 @@
-import { promises as fs } from "fs";
 import {
     CampaignLevelInfo,
     Leaderboard,
@@ -9,7 +8,7 @@ import {
 } from "../src/LeaderboardInterface";
 import { Remote } from "../src/RemoteLeaderboardInterface";
 import assert from "assert";
-import { WeeklyLevel } from "../src/WeeklyLevel";
+import { WeeklyLevel } from "../src/resources/WeeklyLevel";
 
 function getTestLevel(): WeeklyLevel {
     let levelInfo: WeeklyLevelInfo = {
@@ -31,6 +30,6 @@ describe("Weekly Level Processing", () => {
 
         await level.reload();
 
-        console.log(await level.getLeaderboard());
+        console.log(await level.get());
     });
 });
