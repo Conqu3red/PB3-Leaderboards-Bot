@@ -1,13 +1,11 @@
-import { CDN_URL, DATA_DIR } from "../Consts";
-import { LevelLeaderboards, CampaignLevelInfo } from "../LeaderboardInterface";
+import { LevelLeaderboards } from "../LeaderboardInterface";
 import { BaseLevel } from "./Level";
 import { Remote } from "../RemoteLeaderboardInterface";
-import fs from "fs";
-import path from "path";
 import {
     processRemoteLeaderboard,
     updateOldestDataAndPurgeCheated,
 } from "../LeaderboardProcessors";
+import { CampaignLevelInfo } from "./CampaignIndex";
 
 export class CampaignLevel extends BaseLevel {
     info: CampaignLevelInfo;
@@ -37,6 +35,6 @@ export class CampaignLevel extends BaseLevel {
     }
 
     remotePath(): string {
-        return `/manifests/leaderboards/scores/${this.info.id}.json`;
+        return `manifests/leaderboards/scores/${this.info.id}.json`;
     }
 }

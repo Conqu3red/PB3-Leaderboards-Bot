@@ -15,7 +15,7 @@ function getTestLevel(): CampaignLevel {
     let levelInfo: CampaignLevelInfo = {
         id: "mAp2V",
         identifier: { world: 1, level: 1, isChallenge: false },
-        title: "Ten Meter Simple Bridge",
+        name: "Ten Meter Simple Bridge",
         budget: 10_000,
     };
 

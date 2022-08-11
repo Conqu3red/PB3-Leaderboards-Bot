@@ -1,16 +1,22 @@
-import axios from "axios";
+import axios, { ResponseType } from "axios";
 import fs from "fs";
 import path from "path";
 import { CDN_URL, DATA_DIR } from "../Consts";
 
+interface ResourceConfig {
+    responseType: ResponseType;
+}
+
 export abstract class CdnResource<L, R> {
     reloadIntervalMs: number;
+    resourceConfig?: ResourceConfig;
     protected cachedResource: L | null = null;
     protected defaultData: L;
 
-    constructor(reloadIntervalMs: number, defaultData: L) {
+    constructor(reloadIntervalMs: number, defaultData: L, resourceConfig?: ResourceConfig) {
         this.reloadIntervalMs = reloadIntervalMs;
         this.defaultData = defaultData;
+        this.resourceConfig = resourceConfig;
     }
 
     abstract processRemote(old: L, remote: R): Promise<L>;
@@ -19,7 +25,9 @@ export abstract class CdnResource<L, R> {
 
     async loadFromRemote(): Promise<R> {
         // TODO: catch exceptions
-        let response = await axios.get<R>(this.url());
+        let response = await axios.get<R>(this.url(), {
+            responseType: this.resourceConfig?.responseType ?? "json",
+        });
         let data = response.data;
         return data;
     }
@@ -29,6 +37,7 @@ export abstract class CdnResource<L, R> {
         let old = await this.loadFromFile();
         this.cachedResource = await this.processRemote(old, remote);
         this.save();
+        console.log(`Reloaded resource ${this.localPath()}`);
     }
 
     file() {
@@ -47,8 +56,12 @@ export abstract class CdnResource<L, R> {
         }
     }
 
+    async timeUntilNextReload(): Promise<number> {
+        return this.reloadIntervalMs - (Date.now() - (await this.lastReloadTime()));
+    }
+
     async needsReload(): Promise<boolean> {
-        return Date.now() - (await this.lastReloadTime()) > this.reloadIntervalMs;
+        return (await this.timeUntilNextReload()) <= 0;
     }
 
     async loadFromFile(): Promise<L> {
@@ -93,9 +106,10 @@ export class SimpleResource<L, R> extends CdnResource<L, R> {
         localPath: string,
         remotePath: string,
         defaultData: L,
-        processor: (old: L, remote: R) => Promise<L>
+        processor: (old: L, remote: R) => Promise<L>,
+        resourceConfig?: ResourceConfig
     ) {
-        super(reloadIntervalMs, defaultData);
+        super(reloadIntervalMs, defaultData, resourceConfig);
         this.local = localPath;
         this.remote = remotePath;
         this.processor = processor;

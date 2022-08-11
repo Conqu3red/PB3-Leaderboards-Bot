@@ -6,7 +6,9 @@
   "dependencies": {
     "@types/luxon": "^2.3.2",
     "@types/node": "^18.0.0",
+    "agentkeepalive": "^4.2.1",
     "axios": "^0.27.2",
+    "binary-parser": "^2.1.0",
     "eris": "^0.17.0",
     "luxon": "^2.4.0",
     "ts-node": "^10.8.1",

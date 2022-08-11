@@ -1,4 +1,3 @@
-import { CDN_URL, DATA_DIR } from "../Consts";
 import { LevelLeaderboards, WeeklyLevelInfo } from "../LeaderboardInterface";
 import { BaseLevel } from "./Level";
 import { Remote } from "../RemoteLeaderboardInterface";
@@ -31,6 +30,6 @@ export class WeeklyLevel extends BaseLevel {
     }
 
     remotePath(): string {
-        return `/manifests/leaderboards/challenges/scores/${this.info.id}.json`;
+        return `manifests/leaderboards/challenges/scores/${this.info.id}.json`;
     }
 }

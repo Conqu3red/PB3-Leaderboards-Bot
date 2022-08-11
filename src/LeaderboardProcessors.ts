@@ -57,6 +57,7 @@ export function updateOldestDataAndPurgeCheated(
     );
 
     for (const entry of oldLeaderboard.top1000) {
+        if (entry.rank > OLDEST_RANK_LIMIT) break; // Only process 'cheated' entries relevant to oldest history
         const old_score = entry.value;
         const new_score = new_scores.get(entry.owner.id);
 
@@ -71,5 +72,5 @@ export function updateOldestDataAndPurgeCheated(
 
     // Only users that haven't had a cheated score
     leaderboard.top_history = newHistory.filter((entry) => !cheated_users.has(entry.owner.id));
-    console.log(leaderboard.top_history);
+    //console.log(leaderboard.top_history);
 }
