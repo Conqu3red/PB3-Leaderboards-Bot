@@ -6,6 +6,7 @@ import {
     updateOldestDataAndPurgeCheated,
 } from "../LeaderboardProcessors";
 import { CampaignLevelInfo } from "./CampaignIndex";
+import { encodeLevelCode } from "../LevelCode";
 
 export class CampaignLevel extends BaseLevel {
     info: CampaignLevelInfo;
@@ -36,5 +37,9 @@ export class CampaignLevel extends BaseLevel {
 
     remotePath(): string {
         return `manifests/leaderboards/scores/${this.info.id}.json`;
+    }
+
+    compactName(): string {
+        return encodeLevelCode(this.info.code);
     }
 }

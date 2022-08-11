@@ -26,3 +26,5 @@ export interface WeeklyLevelInfo {
     payload: string;
     preview: string;
 }
+
+export type LeaderboardType = "any" | "unbroken";

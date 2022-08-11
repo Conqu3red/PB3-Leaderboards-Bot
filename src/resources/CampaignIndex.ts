@@ -1,7 +1,5 @@
-import fs from "fs";
-import path from "path";
-import { DATA_DIR } from "../Consts";
 import { LevelCode, parseLevelCode } from "../LevelCode";
+import campaignLevels from "../../json/campaign_levels.json";
 
 interface StoredCampaignLevelInfo {
     id: string;
@@ -18,11 +16,7 @@ export interface CampaignLevelInfo {
 }
 
 export async function loadCampaignLevelInfos(): Promise<CampaignLevelInfo[]> {
-    let data: StoredCampaignLevelInfo[] = [];
-    try {
-        // TODO: don't hard-code filepath
-        data = JSON.parse(await fs.promises.readFile("./json/campaign_levels.json", "utf8"));
-    } catch {}
+    let data: StoredCampaignLevelInfo[] = campaignLevels;
 
     return data.map((info) => {
         return {

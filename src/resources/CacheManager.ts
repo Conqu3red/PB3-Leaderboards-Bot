@@ -84,3 +84,11 @@ export class WeeklyManager {
         return level ?? null;
     }
 }
+
+export class CacheManager {
+    campaignManager = new CampaignManager();
+    weeklyManager = new WeeklyManager();
+    // TODO: attach manager for bin collated file?
+}
+
+export const cacheManager = new CacheManager();

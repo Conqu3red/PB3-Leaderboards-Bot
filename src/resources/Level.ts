@@ -19,4 +19,6 @@ export abstract class BaseLevel extends CdnResource<LevelLeaderboards, Remote.Le
             },
         });
     }
+
+    abstract compactName(): string;
 }

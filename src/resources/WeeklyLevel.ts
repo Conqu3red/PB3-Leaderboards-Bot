@@ -32,4 +32,8 @@ export class WeeklyLevel extends BaseLevel {
     remotePath(): string {
         return `manifests/leaderboards/challenges/scores/${this.info.id}.json`;
     }
+
+    compactName(): string {
+        return `Week ${this.info.week}`;
+    }
 }

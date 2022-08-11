@@ -1,24 +1,20 @@
 import { weeklyIndex } from "./resources/WeeklyIndex";
 import { WeeklyLevel } from "./resources/WeeklyLevel";
-import { CampaignManager, WeeklyManager } from "./resources/CacheManager";
+import { cacheManager, CampaignManager, WeeklyManager } from "./resources/CacheManager";
 import { campaignBuckets } from "./resources/Buckets";
 import { configureHttp } from "./resources/ConfigureHttpAgents";
+import { globalLeaderboard } from "./GlobalLeaderboard";
 
 (async () => {
     configureHttp();
 
-    let weeklyManager = new WeeklyManager();
     console.log(await weeklyIndex.lastReloadTime());
-    let latest = await weeklyManager.getLatest();
+    let latest = await cacheManager.weeklyManager.getLatest();
 
     console.log(latest);
 
-    let campaignManager = new CampaignManager();
-    let level = await campaignManager.getByCode("1-1");
+    let level = await cacheManager.campaignManager.getByCode("1-1");
     console.log(level);
-    if (level) {
-        console.log(level.info);
-    }
 
     await campaignBuckets.reload();
     let buckets = await campaignBuckets.get();
@@ -26,4 +22,15 @@ import { configureHttp } from "./resources/ConfigureHttpAgents";
     if (levelBuckets) {
         console.log(levelBuckets.any[0]);
     }
+
+    console.time("globalBoard");
+    let globalBoard = await globalLeaderboard({
+        type: "any",
+        levelCategory: "all",
+        byRawScore: true,
+    });
+    console.timeEnd("globalBoard");
+    console.log(`Global board, length: ${globalBoard.length}`);
+    console.log(globalBoard[0]);
+    console.log(globalBoard[1]);
 })();
