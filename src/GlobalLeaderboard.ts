@@ -129,3 +129,13 @@ export async function globalLeaderboard<T extends BaseLevel<any>>(
         return await collateBoards(weeklyLevels, actualOptions);
     }
 }
+
+export function findUser(board: GlobalEntry[], userID: string): GlobalEntry | null {
+    for (const score of board) {
+        if (score.user.id == userID) {
+            return score;
+        }
+    }
+
+    return null;
+}

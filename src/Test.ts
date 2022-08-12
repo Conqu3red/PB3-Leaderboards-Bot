@@ -4,6 +4,7 @@ import { cacheManager, CampaignManager, WeeklyManager } from "./resources/CacheM
 import { campaignBuckets } from "./resources/Buckets";
 import { configureHttp } from "./resources/ConfigureHttpAgents";
 import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
+import { getProfile } from "./Profile";
 
 (async () => {
     configureHttp();
@@ -34,5 +35,14 @@ import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
         console.log(`Global board, length: ${globalBoard.length}`);
         console.log(globalBoard[0]);
         console.log(globalBoard[1]);
+    }
+
+    console.time("profile");
+    let myProfile = await getProfile("Conqu3red");
+    console.timeEnd("profile");
+    console.log(myProfile);
+    if (myProfile) {
+        console.log(myProfile.stats.globalPositions);
+        console.log(myProfile.stats.scoreCounts[1]);
     }
 })();
