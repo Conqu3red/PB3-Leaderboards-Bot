@@ -5,6 +5,8 @@ import { campaignBuckets } from "./resources/Buckets";
 import { configureHttp } from "./resources/ConfigureHttpAgents";
 import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
 import { getProfile } from "./Profile";
+import { sumOfBest } from "./SumOfBest";
+import { groupBy } from "./Oldest";
 
 (async () => {
     configureHttp();
@@ -45,4 +47,11 @@ import { getProfile } from "./Profile";
         console.log(myProfile.stats.globalPositions);
         console.log(myProfile.stats.scoreCounts[1]);
     }
+
+    console.time("sumsOfBest");
+    let sumsOfBest = await sumOfBest("any");
+    console.timeEnd("sumsOfBest");
+    console.log(sumsOfBest);
+
+    console.log(groupBy([1, 1, 2, 3, 3], (obj) => obj));
 })();
