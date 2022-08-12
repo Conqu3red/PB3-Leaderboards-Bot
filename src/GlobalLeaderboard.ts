@@ -1,15 +1,18 @@
-import { LeaderboardType, LevelLeaderboards } from "./LeaderboardInterface";
+import { LeaderboardEntry, LeaderboardType, LevelLeaderboards } from "./LeaderboardInterface";
 import { Remote } from "./RemoteLeaderboardInterface";
 import { cacheManager } from "./resources/CacheManager";
 import { CampaignLevel } from "./resources/CampaignLevel";
 import rankToScore from "../json/rank_to_score.json";
+import { BaseLevel } from "./resources/Level";
+import { WeeklyLevel } from "./resources/WeeklyLevel";
 
-type LevelCategory = "all" | "regular" | "challenge"; // TODO: add "weekly"
+type LevelCategory = "all" | "regular" | "challenge" | "weekly"; // TODO: add "weekly"
 
 const levelFilters = {
     all: (level: CampaignLevel) => true,
     regular: (level: CampaignLevel) => !level.info.code.isChallenge,
     challenge: (level: CampaignLevel) => level.info.code.isChallenge,
+    weekly: (level: WeeklyLevel) => true,
 };
 
 export interface GlobalEntry {
@@ -18,28 +21,53 @@ export interface GlobalEntry {
     rank: number;
 }
 
-export interface GlobalOptions {
+export interface GlobalScoreComputer<T extends BaseLevel<any>> {
+    isValidOptions(options: GlobalOptions<T>): boolean;
+    baseScore(levels: T[]): number;
+    getLevelSubtractScore(level: T, score: LeaderboardEntry, options: GlobalOptions<T>): number;
+}
+
+export const GlobalScoreByRank: GlobalScoreComputer<CampaignLevel | WeeklyLevel> = {
+    isValidOptions(options) {
+        return true;
+    },
+    baseScore(levels) {
+        return 100 * levels.length;
+    },
+    getLevelSubtractScore(level, score, options) {
+        return 100 - rankToScore[score.rank - 1];
+    },
+};
+
+export const GlobalScoreByBudget: GlobalScoreComputer<CampaignLevel> = {
+    isValidOptions(options) {
+        return options.levelCategory !== "weekly";
+    },
+    baseScore(levels) {
+        return levels.reduce((a, b) => a + b.info.budget, 0);
+    },
+    getLevelSubtractScore(level, score, options) {
+        return level.info.budget - score.value;
+    },
+};
+
+export interface GlobalOptions<T extends BaseLevel<any>> {
     type: LeaderboardType;
     levelCategory: LevelCategory;
-    byRawScore: boolean;
+    scoreComputer: GlobalScoreComputer<T>;
 }
 
 export function selectLeaderboard(level: LevelLeaderboards, type: LeaderboardType) {
     return type == "any" ? level.any : level.unbroken;
 }
 
-export async function globalLeaderboard(options?: GlobalOptions): Promise<GlobalEntry[]> {
-    options = options ?? { type: "any", levelCategory: "all", byRawScore: false };
-
-    let levelFilter = levelFilters[options.levelCategory];
-
-    await cacheManager.campaignManager.maybeReload();
-    let levels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
+async function collateBoards<T extends BaseLevel<any>>(
+    levels: T[],
+    options: GlobalOptions<T>
+): Promise<GlobalEntry[]> {
     let userScores: Map<string, GlobalEntry> = new Map();
 
-    const startScore = options.byRawScore
-        ? levels.reduce((a, b) => a + b.info.budget, 0)
-        : 100 * levels.length;
+    const startScore = options.scoreComputer.baseScore(levels);
     // TODO: option for moneyspent
 
     for (const level of levels) {
@@ -52,9 +80,7 @@ export async function globalLeaderboard(options?: GlobalOptions): Promise<Global
                 rank: NaN,
             };
 
-            entry.value -= options.byRawScore
-                ? level.info.budget - score.value
-                : 100 - rankToScore[score.rank - 1];
+            entry.value -= options.scoreComputer.getLevelSubtractScore(level, score, options);
             userScores.set(score.owner.id, entry);
         }
     }
@@ -76,4 +102,30 @@ export async function globalLeaderboard(options?: GlobalOptions): Promise<Global
     }
 
     return results;
+}
+
+export async function globalLeaderboard<T extends BaseLevel<any>>(
+    options?: GlobalOptions<T>
+): Promise<GlobalEntry[] | null> {
+    let actualOptions = options ?? {
+        type: "any",
+        levelCategory: "all",
+        scoreComputer: GlobalScoreByRank,
+    };
+
+    if (!actualOptions.scoreComputer.isValidOptions(actualOptions)) {
+        return null;
+    }
+
+    if (actualOptions.levelCategory !== "weekly") {
+        let levelFilter = levelFilters[actualOptions.levelCategory];
+        await cacheManager.campaignManager.maybeReload();
+        let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
+        return await collateBoards(campaignLevels, actualOptions);
+    } else {
+        let levelFilter = levelFilters[actualOptions.levelCategory];
+        await cacheManager.weeklyManager.maybeReload();
+        let weeklyLevels = cacheManager.weeklyManager.weeklyLevels.filter(levelFilter);
+        return await collateBoards(weeklyLevels, actualOptions);
+    }
 }

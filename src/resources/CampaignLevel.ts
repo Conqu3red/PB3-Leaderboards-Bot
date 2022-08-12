@@ -8,14 +8,7 @@ import {
 import { CampaignLevelInfo } from "./CampaignIndex";
 import { encodeLevelCode } from "../LevelCode";
 
-export class CampaignLevel extends BaseLevel {
-    info: CampaignLevelInfo;
-
-    constructor(info: CampaignLevelInfo, reloadIntervalMs: number) {
-        super(reloadIntervalMs);
-        this.info = info;
-    }
-
+export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
     async processRemote(
         old: LevelLeaderboards,
         remote: Remote.LevelLeaderboards

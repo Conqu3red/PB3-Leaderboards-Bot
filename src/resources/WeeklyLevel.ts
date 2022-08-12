@@ -3,14 +3,7 @@ import { BaseLevel } from "./Level";
 import { Remote } from "../RemoteLeaderboardInterface";
 import { processRemoteLeaderboard } from "../LeaderboardProcessors";
 
-export class WeeklyLevel extends BaseLevel {
-    info: WeeklyLevelInfo;
-
-    constructor(info: WeeklyLevelInfo, reloadIntervalMs: number) {
-        super(reloadIntervalMs);
-        this.info = info;
-    }
-
+export class WeeklyLevel extends BaseLevel<WeeklyLevelInfo> {
     async processRemote(
         old: LevelLeaderboards,
         remote: Remote.LevelLeaderboards

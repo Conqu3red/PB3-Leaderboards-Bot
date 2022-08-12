@@ -3,7 +3,7 @@ import { WeeklyLevel } from "./resources/WeeklyLevel";
 import { cacheManager, CampaignManager, WeeklyManager } from "./resources/CacheManager";
 import { campaignBuckets } from "./resources/Buckets";
 import { configureHttp } from "./resources/ConfigureHttpAgents";
-import { globalLeaderboard } from "./GlobalLeaderboard";
+import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
 
 (async () => {
     configureHttp();
@@ -27,10 +27,12 @@ import { globalLeaderboard } from "./GlobalLeaderboard";
     let globalBoard = await globalLeaderboard({
         type: "any",
         levelCategory: "all",
-        byRawScore: true,
+        scoreComputer: GlobalScoreByBudget,
     });
     console.timeEnd("globalBoard");
-    console.log(`Global board, length: ${globalBoard.length}`);
-    console.log(globalBoard[0]);
-    console.log(globalBoard[1]);
+    if (globalBoard) {
+        console.log(`Global board, length: ${globalBoard.length}`);
+        console.log(globalBoard[0]);
+        console.log(globalBoard[1]);
+    }
 })();
