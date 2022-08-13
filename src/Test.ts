@@ -6,16 +6,18 @@ import { configureHttp } from "./resources/ConfigureHttpAgents";
 import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
 import { getProfile } from "./Profile";
 import { sumOfBest } from "./SumOfBest";
-import { groupBy } from "./Oldest";
+import { getTimeUserBecameTop, groupBy } from "./Oldest";
+import { TIME_FORMAT } from "./Consts";
+import { DateTime } from "luxon";
 
-(async () => {
-    configureHttp();
-
+async function weeklyTest() {
     console.log(await weeklyIndex.lastReloadTime());
     let latest = await cacheManager.weeklyManager.getLatest();
 
     console.log(latest);
+}
 
+async function otherStuff() {
     let level = await cacheManager.campaignManager.getByCode("1-1");
     console.log(level);
 
@@ -54,4 +56,33 @@ import { groupBy } from "./Oldest";
     console.log(sumsOfBest);
 
     console.log(groupBy([1, 1, 2, 3, 3], (obj) => obj));
+}
+
+(async () => {
+    configureHttp();
+
+    // await weeklyTest();
+    // await otherStuff();
+
+    let level = await cacheManager.campaignManager.getByCode("1-1");
+
+    if (level) {
+        let board = (await level.get()).any;
+        console.time("oldest");
+        let t = getTimeUserBecameTop(board);
+        console.timeEnd("oldest");
+        if (t) {
+            console.log(t.length);
+            let now = DateTime.now();
+            for (const user of t) {
+                console.log(
+                    `${Math.floor(now.diff(user.initialTime).as("days"))} ago: $${
+                        user.latestScore.value
+                    } (${user.latestScore.owner.display_name})`
+                );
+            }
+        } else {
+            console.log("no results");
+        }
+    }
 })();

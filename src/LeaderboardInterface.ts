@@ -16,7 +16,7 @@ export interface LeaderboardEntry extends Remote.LeaderboardEntry {
 }
 
 export interface OldestEntry extends LeaderboardEntry {
-    time: string;
+    time: number; // epoch seconds
 }
 
 export interface WeeklyLevelInfo {
