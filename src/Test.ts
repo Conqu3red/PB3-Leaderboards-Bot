@@ -6,7 +6,7 @@ import { configureHttp } from "./resources/ConfigureHttpAgents";
 import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
 import { getProfile } from "./Profile";
 import { sumOfBest } from "./SumOfBest";
-import { getTimeUserBecameTop, groupBy } from "./Oldest";
+import { getOldest, getTopUserStreaks, groupBy } from "./Oldest";
 import { TIME_FORMAT } from "./Consts";
 import { DateTime } from "luxon";
 
@@ -64,25 +64,40 @@ async function otherStuff() {
     // await weeklyTest();
     // await otherStuff();
 
+    await cacheManager.campaignManager.maybeReload();
+
     let level = await cacheManager.campaignManager.getByCode("1-1");
 
     if (level) {
         let board = (await level.get()).any;
         console.time("oldest");
-        let t = getTimeUserBecameTop(board);
+        let t = getTopUserStreaks(board);
         console.timeEnd("oldest");
         if (t) {
             console.log(t.length);
             let now = DateTime.now();
             for (const user of t) {
                 console.log(
-                    `${Math.floor(now.diff(user.initialTime).as("days"))} ago: $${
-                        user.latestScore.value
-                    } (${user.latestScore.owner.display_name})`
+                    `${Math.floor(
+                        now.diff(DateTime.fromSeconds(user.initialTime)).as("days")
+                    )}d ago: $${user.latestScore.value} (${user.latestScore.owner.display_name})`
                 );
             }
         } else {
             console.log("no results");
         }
+    }
+
+    console.time("full oldest");
+    let oldestResults = await getOldest("any");
+    console.timeEnd("full oldest");
+    console.log(oldestResults.length);
+    let now = DateTime.now();
+    for (const user of oldestResults[0].entries) {
+        console.log(
+            `${Math.floor(now.diff(DateTime.fromSeconds(user.initialTime)).as("days"))}d ago: $${
+                user.latestScore.value
+            } (${user.latestScore.owner.display_name})`
+        );
     }
 })();
