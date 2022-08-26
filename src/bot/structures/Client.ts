@@ -43,10 +43,12 @@ export class BetterClient extends Client {
 
     async registerModules() {
         const slashCommands: CommandType[] = [];
-        console.log(`${__dirname}/../commands/*/*{.ts,.js}`);
-        const commandFiles = await globPromise(`${__dirname}/../commands/*/*{.ts,.js}`);
+        const commandFiles = await globPromise(`../commands/*/*{.ts,.js}`, {
+            cwd: __dirname,
+            absolute: true,
+        });
 
-        console.log(`👨‍💻 Registering commands...`);
+        console.log(`Registering commands...`);
         console.log(__dirname);
         console.log(commandFiles);
 
@@ -64,7 +66,10 @@ export class BetterClient extends Client {
         });
 
         // Event Handler
-        const eventFiles = await globPromise(`${__dirname}/../events/*{.ts,.js}`);
+        const eventFiles = await globPromise(`../events/*{.ts,.js}`, {
+            cwd: __dirname,
+            absolute: true,
+        });
         eventFiles.forEach(async (filePath) => {
             const event: BEvent<keyof ClientEvents> = await this.importFile(filePath);
             this.on(event.event, event.run);
