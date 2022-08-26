@@ -9,6 +9,7 @@ import { sumOfBest } from "./SumOfBest";
 import { getOldest, getTopUserStreaks, groupBy } from "./Oldest";
 import { TIME_FORMAT } from "./Consts";
 import { DateTime } from "luxon";
+import { renderBoard } from "./TopLeaderboard";
 
 async function weeklyTest() {
     console.log(await weeklyIndex.lastReloadTime());
@@ -86,6 +87,8 @@ async function otherStuff() {
         } else {
             console.log("no results");
         }
+
+        renderBoard(board, 0);
     }
 
     console.time("full oldest");
