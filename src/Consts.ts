@@ -8,3 +8,5 @@ export const TIME_FORMAT = "dd/MM/yy-HH:mm";
 
 // Data folder
 export const DATA_DIR = "data";
+
+export const N_ENTRIES = 12;

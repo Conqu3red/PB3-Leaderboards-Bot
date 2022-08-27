@@ -4,32 +4,36 @@
     "main": "index.js",
     "license": "MIT",
     "dependencies": {
-        "@types/luxon": "^2.3.2",
-        "@types/node": "^18.0.0",
         "agentkeepalive": "^4.2.1",
         "axios": "^0.27.2",
         "binary-parser": "^2.1.0",
         "canvas": "^2.9.3",
         "canvas-table": "^0.3.0",
         "dotenv": "^16.0.1",
-        "eris": "DonovanDMC/eris#everything",
+        "eris": "DonovanDMC/eris#everything-v10",
         "glob": "^8.0.3",
         "luxon": "^2.4.0",
-        "ts-node": "^10.8.1",
-        "ts-node-dev": "^2.0.0",
-        "tsc": "^2.0.4",
-        "tslib": "^2.4.0",
-        "typescript": "^4.7.4"
+        "tiny-typed-emitter": "^2.1.0",
+        "uuid": "^8.3.2"
     },
     "scripts": {
-        "run": "ts-node src/Test.ts",
-        "bot": "ts-node src/bot/Index.ts",
+        "build": "tsc",
+        "run": "ts-node-dev src/Test.ts",
+        "bot": "ts-node-dev src/bot/Index.ts",
         "test": "ts-mocha --type-check -p tsconfig.json tests/**/*.test.ts"
     },
     "devDependencies": {
         "@types/expect": "^24.3.0",
         "@types/glob": "^7.2.0",
         "@types/mocha": "^9.1.1",
+        "@types/luxon": "^2.3.2",
+        "@types/node": "^18.0.0",
+        "@types/uuid": "^8.3.4",
+        "ts-node": "^10.8.1",
+        "ts-node-dev": "^2.0.0",
+        "tsc": "^2.0.4",
+        "tslib": "^2.4.0",
+        "typescript": "^4.7.4",
         "mocha": "^10.0.0",
         "ts-mocha": "^10.0.0"
     }
