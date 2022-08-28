@@ -35,7 +35,7 @@ export async function renderBoard(board: Leaderboard, index: number): Promise<Bu
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
         entry.owner.display_name,
-        `$${entry.value}`,
+        `$${entry.value.toLocaleString("en-US")}`,
         entry.didBreak ? "✱" : "",
     ]);
 

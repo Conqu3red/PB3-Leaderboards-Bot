@@ -4,6 +4,8 @@ import { WeeklyLevel } from "./WeeklyLevel";
 import { loadCampaignLevelInfos } from "./CampaignIndex";
 import { CampaignLevel } from "./CampaignLevel";
 import { LevelCode, levelCodeEqual, parseLevelCode } from "../LevelCode";
+import { campaignBuckets } from "./Buckets";
+import { asyncSetTimeout } from "../utils/asyncTimeout";
 
 export async function bulkMaybeReload(resources: CdnResource<any, any>[]) {
     return Promise.all(
@@ -31,6 +33,13 @@ export class CampaignManager {
         if (reloadRequired) await this.populate();
 
         await bulkMaybeReload(this.campaignLevels);
+    }
+
+    async timeToNextReload(): Promise<number> {
+        this.populate();
+        return Math.min(
+            ...(await Promise.all(this.campaignLevels.map((level) => level.timeUntilNextReload())))
+        );
     }
 
     async getByCode(code: LevelCode | string): Promise<CampaignLevel | null> {
@@ -72,6 +81,13 @@ export class WeeklyManager {
         await bulkMaybeReload(this.weeklyLevels);
     }
 
+    async timeToNextReload(): Promise<number> {
+        await this.populate();
+        return Math.min(
+            ...(await Promise.all(this.weeklyLevels.map((level) => level.timeUntilNextReload())))
+        );
+    }
+
     async getLatest(): Promise<WeeklyLevel | null> {
         await this.maybeReload();
         let week = Math.max(...this.weeklyLevels.map((level) => level.info.week));
@@ -89,6 +105,27 @@ export class CacheManager {
     campaignManager = new CampaignManager();
     weeklyManager = new WeeklyManager();
     // TODO: attach manager for bin collated file?
+
+    async maybeReload() {
+        await this.campaignManager.maybeReload();
+        await this.weeklyManager.maybeReload();
+        if (await campaignBuckets.needsReload()) await campaignBuckets.reload();
+    }
+
+    async backgroundUpdate() {
+        while (true) {
+            let nextReloadTime = Math.min(
+                await this.campaignManager.timeToNextReload(),
+                await this.weeklyManager.timeToNextReload(),
+                await campaignBuckets.timeUntilNextReload()
+            );
+
+            console.log(`[CacheManager] Next reload in ${nextReloadTime / 1000}s`);
+            await asyncSetTimeout(nextReloadTime);
+
+            await this.maybeReload();
+        }
+    }
 }
 
 export const cacheManager = new CacheManager();

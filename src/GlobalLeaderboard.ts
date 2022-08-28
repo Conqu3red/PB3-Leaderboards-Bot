@@ -5,8 +5,11 @@ import { CampaignLevel } from "./resources/CampaignLevel";
 import rankToScore from "../json/rank_to_score.json";
 import { BaseLevel } from "./resources/Level";
 import { WeeklyLevel } from "./resources/WeeklyLevel";
+import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
+import { createCanvas } from "canvas";
+import { N_ENTRIES } from "./Consts";
 
-type LevelCategory = "all" | "regular" | "challenge" | "weekly"; // TODO: add "weekly"
+export type LevelCategory = "all" | "regular" | "challenge" | "weekly"; // TODO: add "weekly"
 
 const levelFilters = {
     all: (level: CampaignLevel) => true,
@@ -22,9 +25,9 @@ export interface GlobalEntry {
 }
 
 export interface GlobalScoreComputer<T extends BaseLevel<any>> {
-    isValidOptions(options: GlobalOptions<T>): boolean;
+    isValidOptions(options: GlobalOptions): boolean;
     baseScore(levels: T[]): number;
-    getLevelSubtractScore(level: T, score: LeaderboardEntry, options: GlobalOptions<T>): number;
+    getLevelSubtractScore(level: T, score: LeaderboardEntry, options: GlobalOptions): number;
 }
 
 export const GlobalScoreByRank: GlobalScoreComputer<CampaignLevel | WeeklyLevel> = {
@@ -51,10 +54,28 @@ export const GlobalScoreByBudget: GlobalScoreComputer<CampaignLevel> = {
     },
 };
 
-export interface GlobalOptions<T extends BaseLevel<any>> {
+export type GlobalScoreComputerType = "rank" | "moneyspent";
+
+export const globalScoreComputers = {
+    rank: GlobalScoreByRank,
+    moneyspent: GlobalScoreByBudget,
+};
+
+export interface GlobalOptions {
     type: LeaderboardType;
     levelCategory: LevelCategory;
-    scoreComputer: GlobalScoreComputer<T>;
+    scoreComputer: GlobalScoreComputerType;
+}
+
+function globalOptionsOrDefault(options?: GlobalOptions): GlobalOptions {
+    return Object.assign(
+        {
+            type: "any",
+            levelCategory: "all",
+            scoreComputer: "rank",
+        },
+        options
+    );
 }
 
 export function selectLeaderboard(level: LevelLeaderboards, type: LeaderboardType) {
@@ -63,11 +84,11 @@ export function selectLeaderboard(level: LevelLeaderboards, type: LeaderboardTyp
 
 async function collateBoards<T extends BaseLevel<any>>(
     levels: T[],
-    options: GlobalOptions<T>
+    options: GlobalOptions
 ): Promise<GlobalEntry[]> {
     let userScores: Map<string, GlobalEntry> = new Map();
-
-    const startScore = options.scoreComputer.baseScore(levels);
+    let scoreComputer: GlobalScoreComputer<T> = globalScoreComputers[options.scoreComputer];
+    const startScore = scoreComputer.baseScore(levels);
     // TODO: option for moneyspent
 
     for (const level of levels) {
@@ -80,7 +101,7 @@ async function collateBoards<T extends BaseLevel<any>>(
                 rank: NaN,
             };
 
-            entry.value -= options.scoreComputer.getLevelSubtractScore(level, score, options);
+            entry.value -= scoreComputer.getLevelSubtractScore(level, score, options);
             userScores.set(score.owner.id, entry);
         }
     }
@@ -104,16 +125,11 @@ async function collateBoards<T extends BaseLevel<any>>(
     return results;
 }
 
-export async function globalLeaderboard<T extends BaseLevel<any>>(
-    options?: GlobalOptions<T>
-): Promise<GlobalEntry[] | null> {
-    let actualOptions = options ?? {
-        type: "any",
-        levelCategory: "all",
-        scoreComputer: GlobalScoreByRank,
-    };
+export async function globalLeaderboard(options?: GlobalOptions): Promise<GlobalEntry[] | null> {
+    let actualOptions = globalOptionsOrDefault(options);
+    let scoreComputer = globalScoreComputers[actualOptions.scoreComputer];
 
-    if (!actualOptions.scoreComputer.isValidOptions(actualOptions)) {
+    if (!scoreComputer.isValidOptions(actualOptions)) {
         return null;
     }
 
@@ -138,4 +154,55 @@ export function findUser(board: GlobalEntry[], userID: string): GlobalEntry | nu
     }
 
     return null;
+}
+
+export async function renderGlobal(
+    entries: GlobalEntry[],
+    index: number,
+    options?: GlobalOptions
+): Promise<Buffer> {
+    options = globalOptionsOrDefault(options);
+    const canvas = createCanvas(300, 350);
+    const isMoneySpent = options.scoreComputer === "moneyspent";
+
+    const columns: CTColumn[] = [
+        { title: "#", options: { color: "#ffffff", textAlign: "right" } },
+        { title: "Name", options: { color: "#ffffff", maxWidth: 150 } },
+        {
+            title: isMoneySpent ? "Spent" : "Score",
+            options: { color: "#ffffff", textAlign: "right" },
+        },
+    ];
+
+    let page_index = Math.floor(index / N_ENTRIES);
+    let chosen_entries = entries.slice(page_index * N_ENTRIES, (page_index + 1) * N_ENTRIES);
+
+    const data: CTData = chosen_entries.map((entry) => [
+        entry.rank.toString(),
+        entry.user.display_name,
+        (isMoneySpent ? "$" : "") + entry.value.toLocaleString("en-US"),
+    ]);
+
+    // fit: true
+    const config: CTConfig = {
+        columns,
+        data,
+        options: {
+            background: "#1e2124",
+            header: {
+                color: "#ffffff",
+            },
+            fit: true,
+            fader: undefined,
+            padding: {
+                top: 10,
+                bottom: 10,
+                left: 10,
+                right: 10,
+            },
+        },
+    };
+    const ct = new CanvasTable(canvas, config);
+    await ct.generateTable();
+    return await ct.renderToBuffer();
 }
