@@ -1,11 +1,9 @@
-import Eris from "eris";
-import { BCommand } from "../../structures/Command";
+import { Command } from "../../structures/Command";
 
-export default new BCommand({
+export default new Command({
     name: "hello",
     description: "hello world",
-    type: Eris.Constants.ApplicationCommandTypes.CHAT_INPUT,
     run: async ({ interaction }) => {
-        interaction.createMessage("Hello");
+        interaction.reply("Hello");
     },
 });

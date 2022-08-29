@@ -1,7 +1,7 @@
-import Eris from "eris";
+import { CommandInteraction } from "discord.js";
 
-export async function error(interaction: Eris.CommandInteraction, reason: string) {
-    return await interaction.editOriginalMessage({
+export async function error(interaction: CommandInteraction, reason: string) {
+    return await interaction.editReply({
         embeds: [
             {
                 title: "An Error Occurred.",

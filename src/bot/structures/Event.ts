@@ -1,5 +1,5 @@
-import { ClientEvents } from "eris";
+import { ClientEvents } from "discord.js";
 
-export class BEvent<Key extends keyof ClientEvents> {
+export class Event<Key extends keyof ClientEvents> {
     constructor(public event: Key, public run: (...args: ClientEvents[Key]) => any) {}
 }

@@ -1,13 +1,20 @@
-import { ApplicationCommandStructure, CommandInteraction } from "eris";
-import { BetterClient } from "../structures/Client";
+import {
+    CommandInteraction,
+    CommandInteractionOptionResolver,
+    PermissionResolvable,
+    RESTPostAPIApplicationCommandsJSONBody,
+} from "discord.js";
+import { ExtendedClient } from "../structures/Client";
 
 interface RunOptions {
-    client: BetterClient;
+    client: ExtendedClient;
     interaction: CommandInteraction;
+    args: CommandInteractionOptionResolver;
 }
 
 type RunFunction = (options: RunOptions) => any;
 
-export type CommandType = ApplicationCommandStructure & {
+export type CommandType = {
+    userPermissions?: PermissionResolvable[];
     run: RunFunction;
-};
+} & RESTPostAPIApplicationCommandsJSONBody;

@@ -1,21 +1,17 @@
-import Eris, { CommandInteraction } from "eris";
+import { CommandInteraction, CommandInteractionOptionResolver } from "discord.js";
 import { bot } from "../Index";
-import { BEvent } from "../structures/Event";
+import { Event } from "../structures/Event";
 
-export default new BEvent("interactionCreate", async (interaction) => {
+export default new Event("interactionCreate", async (interaction) => {
     // Chat Input Commands
-    if (interaction instanceof Eris.CommandInteraction) {
-        const command = bot.commands.get(interaction.data.name);
+    if (interaction.isCommand()) {
+        const command = bot.commands.get(interaction.commandName);
+        if (!command) return interaction.followUp("You have used a non existent command");
 
-        if (!command) return interaction.createFollowup("This command does not exist!");
-
-        return command.run({
-            interaction,
+        command.run({
+            args: interaction.options as CommandInteractionOptionResolver,
             client: bot,
+            interaction: interaction as CommandInteraction,
         });
-    }
-
-    if (interaction instanceof Eris.ComponentInteraction) {
-        interaction.deferUpdate(); // To stop nonsense update messages
     }
 });

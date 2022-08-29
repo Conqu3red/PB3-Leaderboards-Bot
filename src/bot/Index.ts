@@ -1,26 +1,18 @@
-import Eris from "eris";
-import { BetterClient } from "./structures/Client";
-import { promisify } from "util";
-import { glob } from "glob";
+import { ExtendedClient } from "./structures/Client";
 import { cacheManager } from "../resources/CacheManager";
 import { configureHttp } from "../resources/ConfigureHttpAgents";
-const globPromise = promisify(glob);
+import { GatewayIntentBits } from "discord.js";
 
 require("dotenv").config();
 const { botToken } = process.env;
 configureHttp();
-
-export const otype = Eris.Constants.ApplicationCommandOptionTypes;
 
 if (!botToken) {
     console.log("Missing botToken from dotenv.");
     process.exit(1);
 }
 
-export const bot = new BetterClient(botToken, {
-    intents: ["guilds"],
-    restMode: true,
-});
+export const bot = new ExtendedClient(botToken, [GatewayIntentBits.Guilds]);
 
 cacheManager.backgroundUpdate();
 

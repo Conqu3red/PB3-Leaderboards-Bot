@@ -1,68 +1,61 @@
-import Eris, { ApplicationCommand, Client, ClientEvents, Collection } from "eris";
+import {
+    ApplicationCommandDataResolvable,
+    Client,
+    ClientEvents,
+    Collection,
+    GatewayIntentBits,
+    SlashCommandBuilder,
+} from "discord.js";
+import { CommandType } from "../typings/Command";
 import glob from "glob";
 import { promisify } from "util";
-import { bot } from "../Index";
-import { CommandType } from "../typings/Command";
-import { BEvent } from "./Event";
+import { RegisterCommandsOptions } from "../typings/client";
+import { Event } from "./Event";
+
 const globPromise = promisify(glob);
 
-export class BetterClient extends Client {
-    botToken: string;
-    commands: Map<string, CommandType> = new Map();
+export class ExtendedClient extends Client {
+    _token: string;
+    commands: Collection<string, CommandType> = new Collection();
 
-    constructor(token: string, botOptions: Eris.ClientOptions) {
-        const _token = `Bot ${token}`;
-        super(_token, botOptions);
-
-        this.botToken = token;
+    constructor(token: string, intents: GatewayIntentBits[]) {
+        super({ intents: intents });
+        this._token = `Bot ${token}`;
     }
 
     async start() {
         await this.registerModules();
-        await this.connect();
+        await this.login(this._token);
     }
 
     async importFile(filePath: string) {
         return (await import(filePath)).default;
     }
 
-    async refreshCommands(commands: CommandType[]) {
-        // If there are commands in the guild that aren't in the commands array - remove them by name
-        const globalCommands = await bot.getCommands();
-        const globalCommandNames = globalCommands.map((command) => command.name);
-        const commandNames = commands.map((command) => command.name);
-
-        globalCommandNames.forEach(async (commandName) => {
-            if (!commandNames.includes(commandName)) {
-                await bot.deleteCommand(commandName);
-            }
-        });
-
-        await bot.bulkEditCommands(commands);
+    async registerCommands({ commands }: RegisterCommandsOptions) {
+        this.application?.commands.set(commands);
+        console.log("Registering global commands");
     }
 
     async registerModules() {
-        const slashCommands: CommandType[] = [];
+        // Command Handler
+        const slashCommands: ApplicationCommandDataResolvable[] = [];
         const commandFiles = await globPromise(`../commands/*/*{.ts,.js}`, {
             cwd: __dirname,
             absolute: true,
         });
-
-        console.log(`Registering commands...`);
-        console.log(__dirname);
-        console.log(commandFiles);
-
         commandFiles.forEach(async (filePath) => {
             const command: CommandType = await this.importFile(filePath);
             if (!command.name) return;
-
+            console.log(`Command: "${command.name}" found.`);
             this.commands.set(command.name, command);
             slashCommands.push(command);
-            console.log(`✔ "${command.name}" command refreshed successfully.`);
         });
 
         this.on("ready", () => {
-            this.refreshCommands(slashCommands);
+            this.registerCommands({
+                commands: slashCommands,
+            });
         });
 
         // Event Handler
@@ -71,7 +64,7 @@ export class BetterClient extends Client {
             absolute: true,
         });
         eventFiles.forEach(async (filePath) => {
-            const event: BEvent<keyof ClientEvents> = await this.importFile(filePath);
+            const event: Event<keyof ClientEvents> = await this.importFile(filePath);
             this.on(event.event, event.run);
         });
     }

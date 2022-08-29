@@ -1,5 +1,5 @@
-import { BEvent } from "../structures/Event";
+import { Event } from "../structures/Event";
 
-export default new BEvent("ready", async () => {
-    console.log("🤖 Bot is online and ready!");
+export default new Event("ready", () => {
+    console.log("Bot is online");
 });
