@@ -67,16 +67,11 @@ export interface GlobalOptions {
     scoreComputer: GlobalScoreComputerType;
 }
 
-function globalOptionsOrDefault(options?: GlobalOptions): GlobalOptions {
-    return Object.assign(
-        {
-            type: "any",
-            levelCategory: "all",
-            scoreComputer: "rank",
-        },
-        options
-    );
-}
+export const defaultOptions: GlobalOptions = {
+    type: "any",
+    levelCategory: "all",
+    scoreComputer: "rank",
+};
 
 export function selectLeaderboard(level: LevelLeaderboards, type: LeaderboardType) {
     return type == "any" ? level.any : level.unbroken;
@@ -126,7 +121,7 @@ async function collateBoards<T extends BaseLevel<any>>(
 }
 
 export async function globalLeaderboard(options?: GlobalOptions): Promise<GlobalEntry[] | null> {
-    let actualOptions = globalOptionsOrDefault(options);
+    let actualOptions = Object.assign(defaultOptions, options);
     let scoreComputer = globalScoreComputers[actualOptions.scoreComputer];
 
     if (!scoreComputer.isValidOptions(actualOptions)) {
@@ -161,7 +156,7 @@ export async function renderGlobal(
     index: number,
     options?: GlobalOptions
 ): Promise<Buffer> {
-    options = globalOptionsOrDefault(options);
+    options = Object.assign(defaultOptions, options);
     const canvas = createCanvas(300, 350);
     const isMoneySpent = options.scoreComputer === "moneyspent";
 

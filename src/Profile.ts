@@ -1,18 +1,12 @@
-import {
-    findUser,
-    GlobalEntry,
-    globalLeaderboard,
-    GlobalScoreByRank,
-    selectLeaderboard,
-} from "./GlobalLeaderboard";
-import { LeaderboardType } from "./LeaderboardInterface";
-import { LevelCode } from "./LevelCode";
+import { findUser, GlobalEntry, globalLeaderboard, selectLeaderboard } from "./GlobalLeaderboard";
+import { LeaderboardEntry, LeaderboardType } from "./LeaderboardInterface";
 import { Remote } from "./RemoteLeaderboardInterface";
-import { LevelBucket } from "./resources/Buckets";
 import { cacheManager } from "./resources/CacheManager";
-import { CampaignLevelInfo } from "./resources/CampaignIndex";
 import { CampaignLevel } from "./resources/CampaignLevel";
 import { BaseLevel } from "./resources/Level";
+import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
+import { createCanvas } from "canvas";
+import { N_ENTRIES } from "./Consts";
 
 export interface GlobalPositions {
     all: GlobalEntry | null;
@@ -34,7 +28,7 @@ export interface ScoreCounts {
 
 export interface LevelScore {
     compactName: string;
-    score: Remote.LeaderboardEntry | undefined;
+    score: LeaderboardEntry | undefined;
 }
 
 export interface Stats {
@@ -53,19 +47,27 @@ export interface Options {
     type: LeaderboardType;
 }
 
+export const defaultOptions: Options = {
+    isID: false,
+    type: "any",
+};
+
+export const scoreCountThresholds = [1, 10, 100, 1000];
+
 function isCampgainLevel(level: BaseLevel<any>): level is CampaignLevel {
     return (level as CampaignLevel).info.code !== undefined;
 }
 
 export async function getProfile(user: string, options?: Options): Promise<Profile | null> {
-    options = options ?? { isID: false, type: "any" };
+    options = Object.assign(defaultOptions, options);
     let owner: Remote.User | undefined = undefined;
 
     let levelScores: LevelScore[] = [];
-    const countThresholds = [1, 10, 100, 1000].sort((a, b) => a - b); // low to high
-
     let scoreCounts: ScoreCounts = Object.fromEntries(
-        countThresholds.map((value) => [value, { overall: 0, regular: 0, challenge: 0, weekly: 0 }])
+        scoreCountThresholds.map((value) => [
+            value,
+            { overall: 0, regular: 0, challenge: 0, weekly: 0 },
+        ])
     );
 
     await cacheManager.campaignManager.maybeReload();
@@ -80,7 +82,7 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
         let boards = await level.get();
         let board = selectLeaderboard(boards, options.type);
 
-        let entry: Remote.LeaderboardEntry | undefined = undefined;
+        let entry: LeaderboardEntry | undefined = undefined;
         for (const score of board.top1000) {
             if (
                 !owner &&
@@ -92,10 +94,10 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
                 entry = score;
 
                 // Threshold processing
-                for (const threshold of countThresholds) {
+                for (const threshold of scoreCountThresholds) {
                     if (score.rank <= threshold) {
-                        scoreCounts[threshold].overall += 1;
                         if (isCampgainLevel(level)) {
+                            scoreCounts[threshold].overall += 1;
                             if (level.info.code.isChallenge) scoreCounts[threshold].challenge += 1;
                             else scoreCounts[threshold].regular += 1;
                         } else {
@@ -118,7 +120,7 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
             (await globalLeaderboard({
                 levelCategory: "all",
                 type: options.type,
-                scoreComputer: GlobalScoreByRank,
+                scoreComputer: "rank",
             })) ?? [],
             owner?.id
         ),
@@ -126,7 +128,7 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
             (await globalLeaderboard({
                 levelCategory: "regular",
                 type: options.type,
-                scoreComputer: GlobalScoreByRank,
+                scoreComputer: "rank",
             })) ?? [],
             owner?.id ?? ""
         ),
@@ -134,7 +136,7 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
             (await globalLeaderboard({
                 levelCategory: "challenge",
                 type: options.type,
-                scoreComputer: GlobalScoreByRank,
+                scoreComputer: "rank",
             })) ?? [],
             owner?.id
         ),
@@ -142,7 +144,7 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
             (await globalLeaderboard({
                 levelCategory: "weekly",
                 type: options.type,
-                scoreComputer: GlobalScoreByRank,
+                scoreComputer: "rank",
             })) ?? [],
             owner?.id
         ),
@@ -159,4 +161,56 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
 
     // TODO: get users scores from every level
     // TODO: score counts and global positions
+}
+
+export async function renderProfileLevelScores(
+    entries: LevelScore[],
+    index: number,
+    options?: Options
+): Promise<Buffer> {
+    options = Object.assign(defaultOptions, options);
+    const canvas = createCanvas(300, 350);
+
+    const columns: CTColumn[] = [
+        { title: "Level", options: { color: "#ffffff" } },
+        { title: "#", options: { color: "#ffffff", textAlign: "right" } },
+        {
+            title: "Score",
+            options: { color: "#ffffff", textAlign: "right" },
+        },
+        { title: "Breaks", options: { color: "#ffffff" } },
+    ];
+
+    let page_index = Math.floor(index / N_ENTRIES);
+    let chosen_entries = entries.slice(page_index * N_ENTRIES, (page_index + 1) * N_ENTRIES);
+
+    const data: CTData = chosen_entries.map((entry) => [
+        entry.compactName,
+        entry.score?.rank?.toString() ?? "",
+        entry.score ? "$" + entry.score?.value?.toLocaleString("en-US") : "",
+        entry.score?.didBreak ? "✱" : "",
+    ]);
+
+    // fit: true
+    const config: CTConfig = {
+        columns,
+        data,
+        options: {
+            background: "#1e2124",
+            header: {
+                color: "#ffffff",
+            },
+            fit: true,
+            fader: undefined,
+            padding: {
+                top: 10,
+                bottom: 10,
+                left: 10,
+                right: 10,
+            },
+        },
+    };
+    const ct = new CanvasTable(canvas, config);
+    await ct.generateTable();
+    return await ct.renderToBuffer();
 }

@@ -38,7 +38,6 @@ function getOptionValue<T>(
 
 interface LeaderboardOptions {
     globalOptions: GlobalOptions;
-    moneyspent: boolean;
     unbroken: boolean;
     user?: string;
     score?: number;
@@ -79,7 +78,7 @@ class PagedGlobalLeaderboard extends PagedResponder {
         let details: string[] = [];
         details.push(`${this.data.options.globalOptions.levelCategory} levels`);
         if (this.data.options.unbroken) details.push("unbroken");
-        return details.join(", ");
+        return details.length === 0 ? "" : `(${details.join(", ")})`;
     }
 
     async generateMessage(): Promise<GeneratedMessage> {
@@ -94,7 +93,7 @@ class PagedGlobalLeaderboard extends PagedResponder {
                 content: "",
                 embeds: [
                     {
-                        title: `Global Leaderboard - ${this.getDetails()}`,
+                        title: `Global Leaderboard ${this.getDetails()}`,
                         color: 0x3586ff,
                         image: {
                             url: `attachment://${uuid}.png`,
@@ -194,7 +193,7 @@ export default new BCommand({
 
         const paged = new PagedGlobalLeaderboard(client, interaction, {
             board,
-            options: { globalOptions, moneyspent, unbroken, user, rank, score },
+            options: { globalOptions, unbroken, user, rank, score },
         });
         await paged.start();
     },
