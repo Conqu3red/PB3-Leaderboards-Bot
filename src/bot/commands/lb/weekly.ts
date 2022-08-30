@@ -1,5 +1,5 @@
 import { Leaderboard } from "../../../LeaderboardInterface";
-import { encodeLevelCode, LevelCode, parseLevelCode } from "../../../LevelCode";
+import { encodeLevelCode, LevelCode } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
 import { renderBoard, renderBoardComparison } from "../../../TopLeaderboard";
@@ -11,6 +11,7 @@ import { arrowComponents, EditMessageType, PagedResponder } from "../../structur
 import { error } from "../../utils/embeds";
 import { N_ENTRIES as ENTRIES_PER_PAGE } from "../../../Consts";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { WeeklyLevel } from "../../../resources/WeeklyLevel";
 
 interface LeaderboardOptions {
     unbroken: boolean;
@@ -34,7 +35,7 @@ function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
 }
 
 interface Data {
-    level: CampaignLevel;
+    level: WeeklyLevel;
     board: Leaderboard;
     comparisonBoard?: Leaderboard;
     options: LeaderboardOptions;
@@ -56,13 +57,10 @@ class PagedLeaderboard extends PagedResponder {
         let board = this.data.comparisonBoard
             ? await renderBoardComparison(
                   {
-                      board: this.data.board,
-                      label: encodeLevelCode(this.data.level.info.code),
-                  },
-                  {
                       board: this.data.comparisonBoard,
-                      label: `${encodeLevelCode(this.data.level.info.code)}c`,
+                      label: `Week ${this.data.level.info.week - 100}`,
                   },
+                  { board: this.data.board, label: `Week ${this.data.level.info.week}` },
                   this.page * ENTRIES_PER_PAGE
               )
             : await renderBoard({ board: this.data.board }, this.page * ENTRIES_PER_PAGE);
@@ -74,15 +72,18 @@ class PagedLeaderboard extends PagedResponder {
             content: "",
             embeds: [
                 {
-                    title: `Leaderboard for ${encodeLevelCode(this.data.level.info.code)}${
+                    title: `Leaderboard for Week ${this.data.level.info.week}${
                         this.data.options.unbroken ? " (unbroken)" : ""
                     }`,
                     description: `Showing top ${this.data.board.top1000.length.toLocaleString(
                         "en-US"
                     )} entries out of ${this.data.board.metadata.uniqueRanksCount.toLocaleString(
                         "en-US"
-                    )} unique ranks.`,
+                    )}.`,
                     color: 0x3586ff,
+                    thumbnail: {
+                        url: this.data.level.info.preview,
+                    },
                     image: {
                         url: `attachment://${uuid}.png`,
                     },
@@ -104,14 +105,15 @@ class PagedLeaderboard extends PagedResponder {
 
 export default new Command({
     command: new SlashCommandBuilder()
-        .setName("leaderboard")
+        .setName("weekly")
         .setDescription("Shows the leaderboard for a campaign level")
         .setDMPermission(false)
-        .addStringOption((option) =>
+        .addIntegerOption((option) =>
             option
-                .setName("level")
-                .setDescription("Level identifier to display leaderboard for")
-                .setRequired(true)
+                .setName("week")
+                .setDescription("Week to display leaderboard for")
+                .setMinValue(1)
+                .setRequired(false)
         )
         .addBooleanOption((option) =>
             option
@@ -128,43 +130,31 @@ export default new Command({
         .addBooleanOption((option) =>
             option.setName("price").setDescription("Price to jump to").setRequired(false)
         )
-        .addBooleanOption((option) =>
-            option
-                .setName("compare_challenge")
-                .setDescription("Whether or not to compare with challenge variant")
-                .setRequired(false)
-        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
-        const levelCode = parseLevelCode(args.getString("level", true));
+        const week = args.getInteger("week", false);
         const unbroken = args.getBoolean("unbroken", false) ?? false;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
         const price = args.getInteger("price", false);
-        const compareChallenge = args.getBoolean("compare_challenge", false) ?? false;
 
-        if (!levelCode) {
-            await error(interaction, "Invalid level code.");
-            return;
-        }
+        const level = week
+            ? await cacheManager.weeklyManager.getByWeek(week)
+            : await cacheManager.weeklyManager.getLatest();
 
-        if (compareChallenge) levelCode.isChallenge = false;
-
-        const level = await cacheManager.campaignManager.getByCode(levelCode);
         if (!level) {
-            await error(interaction, "Unknown level.");
+            await error(interaction, "That week does not exist.");
             return;
         }
         const boards = await level.get();
         const board = unbroken ? boards.unbroken : boards.any;
 
         let comparisonBoard: Leaderboard | undefined;
-        if (compareChallenge) {
-            const comparisonLevel = await cacheManager.campaignManager.getByCode({
-                ...levelCode,
-                isChallenge: true,
-            });
+        if (level.info.week > 100) {
+            const comparisonLevel = await cacheManager.weeklyManager.getByWeek(
+                level.info.week - 100
+            );
             const cBoards = await comparisonLevel?.get();
             comparisonBoard = unbroken ? cBoards?.unbroken : cBoards?.any;
         }

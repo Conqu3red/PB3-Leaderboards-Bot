@@ -1,6 +1,6 @@
 import { Leaderboard } from "./LeaderboardInterface";
 import { CanvasTable, CTConfig, CTData, CTColumn, CTTableDimensions } from "canvas-table";
-import { createCanvas } from "canvas";
+import { Canvas, createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
 
 /* export function cropCanvas(canvas: Canvas, pos: CTTableDimensions, devicePixelRatio: number) {
@@ -19,8 +19,15 @@ import { N_ENTRIES } from "./Consts";
     ctx.putImageData(data, 0, 0);
 } */
 
-export async function renderBoard(board: Leaderboard, index: number): Promise<Buffer> {
-    const canvas = createCanvas(300, 350);
+export const BOARD_DIMENSIONS: [width: number, height: number] = [300, 350];
+
+export interface BoardDetails {
+    label?: string;
+    board: Leaderboard;
+}
+
+export async function renderBoardCanvas(board: BoardDetails, index: number): Promise<Canvas> {
+    const canvas = createCanvas(...BOARD_DIMENSIONS);
 
     const columns: CTColumn[] = [
         { title: "#", options: { color: "#ffffff", textAlign: "right" } },
@@ -30,7 +37,10 @@ export async function renderBoard(board: Leaderboard, index: number): Promise<Bu
     ];
 
     let page_index = Math.floor(index / N_ENTRIES);
-    let chosen_entries = board.top1000.slice(page_index * N_ENTRIES, (page_index + 1) * N_ENTRIES);
+    let chosen_entries = board.board.top1000.slice(
+        page_index * N_ENTRIES,
+        (page_index + 1) * N_ENTRIES
+    );
 
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
@@ -44,6 +54,9 @@ export async function renderBoard(board: Leaderboard, index: number): Promise<Bu
         columns,
         data,
         options: {
+            title: board.label
+                ? { text: board.label, textAlign: "center", color: "#ffffff" }
+                : undefined,
             background: "#1e2124",
             header: {
                 color: "#ffffff",
@@ -60,5 +73,27 @@ export async function renderBoard(board: Leaderboard, index: number): Promise<Bu
     };
     const ct = new CanvasTable(canvas, config);
     await ct.generateTable();
-    return await ct.renderToBuffer();
+    return canvas;
+}
+
+export async function renderBoard(board: BoardDetails, index: number): Promise<Buffer> {
+    const canvas = await renderBoardCanvas(board, index);
+    return canvas.toBuffer();
+}
+
+export async function renderBoardComparison(
+    board1: BoardDetails,
+    board2: BoardDetails,
+    index: number
+): Promise<Buffer> {
+    const c1 = await renderBoardCanvas(board1, index);
+    const c2 = await renderBoardCanvas(board2, index);
+
+    const cMerged = createCanvas(BOARD_DIMENSIONS[0] * 4, BOARD_DIMENSIONS[1] * 2);
+    const ctx = cMerged.getContext("2d");
+    console.log(c1.width, c1.height);
+    ctx.drawImage(c1, 0, 0);
+    ctx.drawImage(c2, BOARD_DIMENSIONS[0] * 2, 0);
+
+    return cMerged.toBuffer();
 }
