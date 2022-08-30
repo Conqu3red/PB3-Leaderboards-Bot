@@ -9,7 +9,6 @@ import {
 import { CommandType } from "../typings/Command";
 import glob from "glob";
 import { promisify } from "util";
-import { RegisterCommandsOptions } from "../typings/client";
 import { Event } from "./Event";
 
 const globPromise = promisify(glob);
@@ -32,7 +31,7 @@ export class ExtendedClient extends Client {
         return (await import(filePath)).default;
     }
 
-    async registerCommands({ commands }: RegisterCommandsOptions) {
+    async registerCommands(commands: ApplicationCommandDataResolvable[]) {
         this.application?.commands.set(commands);
         console.log("Registering global commands");
     }
@@ -46,16 +45,14 @@ export class ExtendedClient extends Client {
         });
         commandFiles.forEach(async (filePath) => {
             const command: CommandType = await this.importFile(filePath);
-            if (!command.name) return;
-            console.log(`Command: "${command.name}" found.`);
-            this.commands.set(command.name, command);
-            slashCommands.push(command);
+            if (!command.command.name) return;
+            console.log(`Command: "${command.command.name}" found.`);
+            this.commands.set(command.command.name, command);
+            slashCommands.push(command.command);
         });
 
         this.on("ready", () => {
-            this.registerCommands({
-                commands: slashCommands,
-            });
+            this.registerCommands(slashCommands);
         });
 
         // Event Handler

@@ -156,7 +156,7 @@ class PagedProfileLeaderboard extends PagedResponder {
 }
 
 export default new Command({
-    ...new SlashCommandBuilder()
+    command: new SlashCommandBuilder()
         .setName("profile")
         .setDescription("Get the overall profile for a user")
         .setDMPermission(false)

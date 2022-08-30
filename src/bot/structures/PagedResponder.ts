@@ -114,9 +114,9 @@ export abstract class PagedResponder {
                 }
             });
 
-            this.collector.on("end", async (interactions, reason) => {
+            this.collector.on("end", async (collected, reason) => {
                 if (this.message) {
-                    this.message.edit({ components: [] });
+                    this.message = await this.message.edit({ components: [] });
                 }
             });
         }

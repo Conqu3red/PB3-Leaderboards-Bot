@@ -94,7 +94,7 @@ class PagedGlobalLeaderboard extends PagedResponder {
 }
 
 export default new Command({
-    ...new SlashCommandBuilder()
+    command: new SlashCommandBuilder()
         .setName("globaltop")
         .setDescription("Shows the global leaderboard")
         .setDMPermission(false)

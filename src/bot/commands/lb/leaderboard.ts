@@ -37,6 +37,7 @@ interface Data {
     level: CampaignLevel;
     board: Leaderboard;
     options: LeaderboardOptions;
+    updateTime: number;
 }
 
 class PagedLeaderboard extends PagedResponder {
@@ -52,8 +53,7 @@ class PagedLeaderboard extends PagedResponder {
 
     async generateMessage(): Promise<EditMessageType> {
         let board = await renderBoard(this.data.board, this.page * ENTRIES_PER_PAGE);
-        let updateTime = await this.data.level.lastReloadTime();
-        let shortTime = DateTime.fromMillis(updateTime).toRelative({ style: "short" });
+        let shortTime = DateTime.fromMillis(this.data.updateTime).toRelative({ style: "short" });
         let uuid = uuidv4();
 
         let attachment = new AttachmentBuilder(board).setName(`${uuid}.png`);
@@ -90,7 +90,7 @@ class PagedLeaderboard extends PagedResponder {
 }
 
 export default new Command({
-    ...new SlashCommandBuilder()
+    command: new SlashCommandBuilder()
         .setName("leaderboard")
         .setDescription("Shows the leaderboard for a campaign level")
         .setDMPermission(false)
@@ -136,6 +136,7 @@ export default new Command({
             level,
             board,
             options: { unbroken, user, rank, price },
+            updateTime: await level.lastReloadTime(),
         });
         await paged.start();
     },
