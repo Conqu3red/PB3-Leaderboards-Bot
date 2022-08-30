@@ -37,7 +37,7 @@ export function updateOldestDataAndPurgeCheated(
 
     let newHistory = [...oldHistory];
 
-    let time = DateTime.now().toSeconds();
+    let time = 3600 * Math.floor(DateTime.now().toSeconds() / 3600);
 
     // Push scores above `OLDEST_RANK_LIMIT` that aren't already in the history.
     for (let i = 0; i < leaderboard.top1000.length; i++) {
