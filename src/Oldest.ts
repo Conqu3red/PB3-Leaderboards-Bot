@@ -1,4 +1,7 @@
+import { Canvas, createCanvas } from "canvas";
+import { CanvasTable, CTColumn, CTConfig, CTData } from "canvas-table";
 import { DateTime } from "luxon";
+import { N_ENTRIES } from "./Consts";
 import { selectLeaderboard } from "./GlobalLeaderboard";
 import {
     Leaderboard,
@@ -6,7 +9,7 @@ import {
     LeaderboardType,
     OldestEntry,
 } from "./LeaderboardInterface";
-import { encodeLevelCode } from "./LevelCode";
+import { encodeLevelCode, LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
 
 export function groupBy<T, R>(arr: T[], prop: (obj: T) => R): Map<R, T[]> {
@@ -21,6 +24,7 @@ export function groupBy<T, R>(arr: T[], prop: (obj: T) => R): Map<R, T[]> {
 export interface UserStreakTracker {
     initialTime: number;
     latestScore: LeaderboardEntry;
+    firstToGetThisScore: boolean;
 }
 
 export function getTopUserStreaks(board: Leaderboard): UserStreakTracker[] | null {
@@ -56,6 +60,7 @@ export function getTopUserStreaks(board: Leaderboard): UserStreakTracker[] | nul
                 user = {
                     initialTime: score.time,
                     latestScore: score,
+                    firstToGetThisScore: false,
                 };
             }
             topUsers.set(score.id, user);
@@ -77,31 +82,120 @@ export function getTopUserStreaks(board: Leaderboard): UserStreakTracker[] | nul
             )
         ); */
     }
+    let lowestTime = Infinity;
+    for (const [id, user] of topUsers) {
+        if (user.initialTime < lowestTime) lowestTime = user.initialTime;
+    }
+
+    for (const [id, user] of topUsers) {
+        if (user.initialTime === lowestTime) {
+            user.firstToGetThisScore = true;
+        }
+    }
 
     return [...topUsers.values()];
 }
 /* 
 export type LevelCategory = "all" | "regular" | "challenge" */
 
-export interface LevelOldestEntry {
-    compactName: string;
-    entries: UserStreakTracker[];
+export interface OldestFilters {
+    levelCode?: LevelCode;
+    user?: string; // TODO: support id and discord link
 }
 
-export async function getOldest(type: LeaderboardType): Promise<LevelOldestEntry[]> {
-    let levelEntries: LevelOldestEntry[] = [];
+export interface PopulatedOldestEntry extends UserStreakTracker {
+    compactName: string;
+}
+
+export async function getOldest(
+    type: LeaderboardType,
+    filters: OldestFilters
+): Promise<PopulatedOldestEntry[]> {
+    let levelEntries: PopulatedOldestEntry[] = [];
 
     await cacheManager.campaignManager.maybeReload();
     for (const level of cacheManager.campaignManager.campaignLevels) {
+        if (filters.levelCode && !levelCodeEqual(level.info.code, filters.levelCode)) continue;
         const boards = await level.get();
         const board = selectLeaderboard(boards, type);
-
         const trackers = getTopUserStreaks(board) ?? [];
+        const code = encodeLevelCode(level.info.code);
 
-        levelEntries.push({ compactName: encodeLevelCode(level.info.code), entries: trackers });
+        levelEntries = levelEntries.concat(
+            trackers
+                .map((entry) => {
+                    return { ...entry, compactName: code };
+                })
+                .filter(
+                    (entry) =>
+                        !filters.user ||
+                        entry.latestScore.owner.display_name.toLowerCase() ===
+                            filters.user.toLowerCase()
+                )
+        );
 
-        // TODO: group entries that are from the same time
+        // TODO: group entries that are from the same time?
     }
 
     return levelEntries;
+}
+
+export const BOARD_DIMENSIONS: [width: number, height: number] = [400, 350];
+
+export async function renderOldestCanvas(
+    board: PopulatedOldestEntry[],
+    index: number
+): Promise<Canvas> {
+    const canvas = createCanvas(...BOARD_DIMENSIONS);
+
+    const columns: CTColumn[] = [
+        { title: "#", options: { color: "#ffffff", textAlign: "right" } },
+        { title: "Level", options: { color: "#ffffff" } },
+        { title: "Name", options: { color: "#ffffff", maxWidth: 150 } },
+        { title: "Time", options: { color: "#ffffff", textAlign: "right" } },
+        { title: "Breaks", options: { color: "#ffffff" } },
+        { title: "Tiebreaker", options: { color: "#ffffff" } },
+    ];
+
+    let page_index = Math.floor(index / N_ENTRIES);
+    let chosen_entries = board.slice(page_index * N_ENTRIES, (page_index + 1) * N_ENTRIES);
+
+    const now = DateTime.now();
+
+    const data: CTData = chosen_entries.map((entry) => [
+        entry.latestScore.rank.toString(),
+        entry.compactName,
+        entry.latestScore.owner.display_name,
+        DateTime.fromSeconds(entry.initialTime).toRelative({ base: now, style: "short" }) ?? "",
+        entry.latestScore.didBreak ? "✱" : "",
+        entry.firstToGetThisScore ? "✱" : "",
+    ]);
+
+    // fit: true
+    const config: CTConfig = {
+        columns,
+        data,
+        options: {
+            background: "#1e2124",
+            header: {
+                color: "#ffffff",
+            },
+            fit: true,
+            fader: undefined,
+            padding: {
+                top: 10,
+                bottom: 10,
+                left: 10,
+                right: 10,
+            },
+        },
+    };
+    const ct = new CanvasTable(canvas, config);
+    await ct.generateTable();
+    return canvas;
+}
+
+export async function renderOldest(board: PopulatedOldestEntry[], index: number): Promise<Buffer> {
+    const canvas = await renderOldestCanvas(board, index);
+    return canvas.toBuffer();
 }
