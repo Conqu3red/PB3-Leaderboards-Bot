@@ -24,9 +24,9 @@ export function parseLevelCode(code: string): LevelCode | null {
 
 export function levelCodeEqual(code: LevelCode, other: LevelCode): boolean {
     return (
-        code.world == other.world &&
-        code.level == other.level &&
-        code.isChallenge == other.isChallenge
+        code.world === other.world &&
+        code.level === other.level &&
+        code.isChallenge === other.isChallenge
     );
 }
 
