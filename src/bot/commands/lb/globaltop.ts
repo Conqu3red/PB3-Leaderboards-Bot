@@ -13,24 +13,25 @@ import {
     renderGlobal,
 } from "../../../GlobalLeaderboard";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { UserFilter } from "../../../utils/userFilter";
+import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 
 interface LeaderboardOptions {
     globalOptions: GlobalOptions;
     unbroken: boolean;
-    user: string | null;
+    userFilter: UserFilter | null;
     score: number | null;
     rank: number | null;
 }
 
 function getBoardIndex(board: GlobalEntry[], options: LeaderboardOptions) {
     // TODO: search for discord user and search for user ID
-    let user_lower = options.user?.toLowerCase();
     for (let i = 0; i < board.length; i++) {
         const entry = board[i];
 
         if (options.rank && entry.rank === options.rank) return i;
         if (options.score && entry.value === options.score) return i;
-        if (user_lower && entry.user.display_name.toLocaleLowerCase() == user_lower) return i;
+        if (options.userFilter?.matches(entry.user)) return i;
     }
 
     return 0;
@@ -148,6 +149,15 @@ export default new Command({
             scoreComputer: moneyspent ? "moneyspent" : "rank",
         };
 
+        let userFilter: UserFilter | null = null;
+        if (user) {
+            userFilter = await pickUserFilter(user);
+            if (!userFilter) {
+                await pickUserFilterError(interaction);
+                return;
+            }
+        }
+
         const board = await globalLeaderboard(globalOptions);
         if (!board) {
             await error(interaction, "Invalid argument combination");
@@ -156,7 +166,7 @@ export default new Command({
 
         const paged = new PagedGlobalLeaderboard(client, interaction, {
             board,
-            options: { globalOptions, unbroken, user, rank, score },
+            options: { globalOptions, unbroken, userFilter, rank, score },
         });
         await paged.start();
     },

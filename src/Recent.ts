@@ -7,13 +7,14 @@ import { selectLeaderboard } from "./GlobalLeaderboard";
 import { LeaderboardType, OldestEntry } from "./LeaderboardInterface";
 import { LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
+import { UserFilter } from "./utils/userFilter";
 
 export interface RecentEntry extends OldestEntry {
     compactName: string;
 }
 
 export interface RecentFilters {
-    user?: string; // TODO: support display_name + ID + discord link?
+    userFilter?: UserFilter; // TODO: support display_name + ID + discord link?
     levelCode?: LevelCode;
 }
 
@@ -34,11 +35,7 @@ export async function getRecent(
                 board.top_history?.map((entry) => {
                     return { ...entry, compactName: level.compactName() };
                 }) ?? []
-            ).filter(
-                (entry) =>
-                    !filters.user ||
-                    entry.owner.display_name.toLowerCase() === filters.user.toLowerCase()
-            )
+            ).filter((entry) => !filters.userFilter || filters.userFilter.matches(entry.owner))
         );
     }
 

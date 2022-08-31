@@ -12,23 +12,24 @@ import { error } from "../../utils/embeds";
 import { N_ENTRIES as ENTRIES_PER_PAGE } from "../../../Consts";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { WeeklyLevel } from "../../../resources/WeeklyLevel";
+import { UserFilter } from "../../../utils/userFilter";
+import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 
 interface LeaderboardOptions {
     unbroken: boolean;
-    user: string | null;
+    userFilter: UserFilter | null;
     price: number | null;
     rank: number | null;
 }
 
 function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
     // TODO: search for discord user and search for user ID
-    let user_lower = options.user?.toLowerCase();
     for (let i = 0; i < board.top1000.length; i++) {
         const entry = board.top1000[i];
 
         if (options.rank && entry.rank >= options.rank) return i;
         if (options.price && entry.value >= options.price) return i;
-        if (user_lower && entry.owner.display_name.toLocaleLowerCase() === user_lower) return i;
+        if (options.userFilter?.matches(entry.owner)) return i;
     }
 
     return 0;
@@ -147,6 +148,16 @@ export default new Command({
             await error(interaction, "That week does not exist.");
             return;
         }
+
+        let userFilter: UserFilter | null = null;
+        if (user) {
+            userFilter = await pickUserFilter(user);
+            if (!userFilter) {
+                await pickUserFilterError(interaction);
+                return;
+            }
+        }
+
         const boards = await level.get();
         const board = unbroken ? boards.unbroken : boards.any;
 
@@ -163,7 +174,7 @@ export default new Command({
             level,
             board,
             comparisonBoard,
-            options: { unbroken, user, rank, price },
+            options: { unbroken, userFilter, rank, price },
             updateTime: await level.lastReloadTime(),
         });
         await paged.start();

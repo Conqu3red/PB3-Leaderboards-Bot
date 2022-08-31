@@ -11,6 +11,7 @@ import {
 } from "./LeaderboardInterface";
 import { encodeLevelCode, LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
+import { UserFilter } from "./utils/userFilter";
 
 export function groupBy<T, R>(arr: T[], prop: (obj: T) => R): Map<R, T[]> {
     const map: Map<R, T[]> = new Map(Array.from(arr, (obj) => [prop(obj), []]));
@@ -100,7 +101,7 @@ export type LevelCategory = "all" | "regular" | "challenge" */
 
 export interface OldestFilters {
     levelCode?: LevelCode;
-    user?: string; // TODO: support id and discord link
+    userFilter?: UserFilter; // TODO: support id and discord link
 }
 
 export interface PopulatedOldestEntry extends UserStreakTracker {
@@ -128,9 +129,7 @@ export async function getOldest(
                 })
                 .filter(
                     (entry) =>
-                        !filters.user ||
-                        entry.latestScore.owner.display_name.toLowerCase() ===
-                            filters.user.toLowerCase()
+                        !filters.userFilter || filters.userFilter.matches(entry.latestScore.owner)
                 )
         );
 

@@ -13,6 +13,8 @@ import { N_ENTRIES as ENTRIES_PER_PAGE, OLDEST_RANK_LIMIT } from "../../../Const
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { getRecent, RecentEntry, renderRecent } from "../../../Recent";
 import { getOldest, PopulatedOldestEntry, renderOldest } from "../../../Oldest";
+import { UserFilter } from "../../../utils/userFilter";
+import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 
 interface LeaderboardOptions {
     unbroken: boolean;
@@ -89,10 +91,19 @@ export default new Command({
         const unbroken = args.getBoolean("unbroken", false) ?? false;
         const user = args.getString("user", false) ?? undefined;
 
+        let userFilter: UserFilter | null = null;
+        if (user) {
+            userFilter = await pickUserFilter(user);
+            if (!userFilter) {
+                await pickUserFilterError(interaction);
+                return;
+            }
+        }
+
         const paged = new PagedLeaderboard(client, interaction, {
             board: await getOldest(unbroken ? "unbroken" : "any", {
                 levelCode: levelCode ? parseLevelCode(levelCode) ?? undefined : undefined,
-                user,
+                userFilter: userFilter ?? undefined,
             }),
             options: { unbroken },
         });

@@ -10,6 +10,8 @@ import { getOldest, getTopUserStreaks, groupBy } from "./Oldest";
 import { TIME_FORMAT } from "./Consts";
 import { DateTime } from "luxon";
 import { renderBoard } from "./TopLeaderboard";
+import { findAllUsersWithUsername } from "./UserFinder";
+import { userMatchesUsername } from "./utils/userFilter";
 
 async function weeklyTest() {
     console.log(await weeklyIndex.lastReloadTime());
@@ -33,7 +35,7 @@ async function otherStuff() {
     let globalBoard = await globalLeaderboard({
         type: "any",
         levelCategory: "all",
-        scoreComputer: GlobalScoreByBudget,
+        scoreComputer: "moneyspent",
     });
     console.timeEnd("globalBoard");
     if (globalBoard) {
@@ -43,7 +45,7 @@ async function otherStuff() {
     }
 
     console.time("profile");
-    let myProfile = await getProfile("Conqu3red");
+    let myProfile = await getProfile(userMatchesUsername("Conqu3red"));
     console.timeEnd("profile");
     console.log(myProfile);
     if (myProfile) {
@@ -88,19 +90,25 @@ async function otherStuff() {
             console.log("no results");
         }
 
-        renderBoard(board, 0);
+        renderBoard({ board }, 0);
     }
 
     console.time("full oldest");
-    let oldestResults = await getOldest("any");
+    let oldestResults = await getOldest("any", {});
     console.timeEnd("full oldest");
     console.log(oldestResults.length);
     let now = DateTime.now();
-    for (const user of oldestResults[0].entries) {
+    for (const user of oldestResults) {
         console.log(
             `${Math.floor(now.diff(DateTime.fromSeconds(user.initialTime)).as("days"))}d ago: $${
                 user.latestScore.value
             } (${user.latestScore.owner.display_name})`
         );
+        break;
     }
+
+    console.log(
+        "Users with name:",
+        await findAllUsersWithUsername(cacheManager.campaignManager.campaignLevels, "alex")
+    );
 })();

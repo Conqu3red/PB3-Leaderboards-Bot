@@ -15,9 +15,14 @@ import {
     scoreCountThresholds,
 } from "../../../Profile";
 import { AttachmentBuilder, CommandInteraction, EmbedField, SlashCommandBuilder } from "discord.js";
+import { UserFilter } from "../../../utils/userFilter";
+import {
+    pickUserFilter,
+    pickUserFilterError,
+    userMatchesDiscordID,
+} from "../../utils/pickUserFilter";
 
 interface LeaderboardOptions {
-    user?: string;
     profileOptions: Options;
 }
 
@@ -161,7 +166,7 @@ export default new Command({
         .setDescription("Get the overall profile for a user")
         .setDMPermission(false)
         .addStringOption((option) =>
-            option.setName("user").setDescription("User to show profile of").setRequired(true)
+            option.setName("user").setDescription("User to show profile of").setRequired(false)
         )
         .addBooleanOption((option) =>
             option
@@ -172,16 +177,26 @@ export default new Command({
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
-        const user = args.getString("user", true);
+        const user = args.getString("user", false);
         const unbroken = args.getString("unbroken", false) ?? false;
 
         const type: LeaderboardType = unbroken ? "unbroken" : "any";
         const profileOptions: Options = {
             type,
-            isID: false,
         };
 
-        const profile = await getProfile(user, profileOptions);
+        let userFilter: UserFilter | null = null;
+        if (user) {
+            userFilter = await pickUserFilter(user);
+        } else {
+            userFilter = await userMatchesDiscordID(interaction.user.id);
+        }
+        if (!userFilter) {
+            await pickUserFilterError(interaction);
+            return;
+        }
+
+        const profile = await getProfile(userFilter, profileOptions);
         if (!profile) {
             await error(
                 interaction,
@@ -192,7 +207,7 @@ export default new Command({
 
         const paged = new PagedProfileLeaderboard(client, interaction, {
             profile,
-            options: { user, profileOptions },
+            options: { profileOptions },
         });
         await paged.start();
     },

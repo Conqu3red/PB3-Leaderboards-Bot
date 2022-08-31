@@ -7,6 +7,7 @@ import { BaseLevel } from "./resources/Level";
 import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
+import { UserFilter } from "./utils/userFilter";
 
 export interface GlobalPositions {
     all: GlobalEntry | null;
@@ -43,12 +44,10 @@ export interface Profile {
 }
 
 export interface Options {
-    isID: boolean;
     type: LeaderboardType;
 }
 
 export const defaultOptions: Options = {
-    isID: false,
     type: "any",
 };
 
@@ -58,7 +57,7 @@ function isCampgainLevel(level: BaseLevel<any>): level is CampaignLevel {
     return (level as CampaignLevel).info.code !== undefined;
 }
 
-export async function getProfile(user: string, options?: Options): Promise<Profile | null> {
+export async function getProfile(user: UserFilter, options?: Options): Promise<Profile | null> {
     options = Object.assign(defaultOptions, options);
     let owner: Remote.User | undefined = undefined;
 
@@ -84,10 +83,7 @@ export async function getProfile(user: string, options?: Options): Promise<Profi
 
         let entry: LeaderboardEntry | undefined = undefined;
         for (const score of board.top1000) {
-            if (
-                !owner &&
-                (options.isID ? score.owner.id === user : score.owner.display_name === user)
-            ) {
+            if (!owner && user.matches(score.owner)) {
                 owner = score.owner;
             }
             if (score.owner.id === owner?.id) {
