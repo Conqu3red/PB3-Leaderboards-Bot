@@ -12,6 +12,7 @@ import { DateTime } from "luxon";
 import { renderBoard } from "./TopLeaderboard";
 import { findAllUsersWithUsername } from "./UserFinder";
 import { userMatchesUsername } from "./utils/userFilter";
+import { getAllPercentiles, implyMissingBuckets } from "./Milestones";
 
 async function weeklyTest() {
     console.log(await weeklyIndex.lastReloadTime());
@@ -111,4 +112,33 @@ async function otherStuff() {
         "Users with name:",
         await findAllUsersWithUsername(cacheManager.campaignManager.campaignLevels, "alex")
     );
+
+    await campaignBuckets.reload();
+    let buckets = await campaignBuckets.get();
+    let levelBuckets = buckets["mAp2V"];
+    if (levelBuckets) {
+        const filled = implyMissingBuckets(levelBuckets.any);
+
+        for (let i = 0; i < levelBuckets.any.length; i++) {
+            const b = levelBuckets.any[i];
+            const f = filled[i];
+            console.log(i, b, f);
+        }
+    }
+
+    if (level) {
+        let percentiles = await getAllPercentiles(
+            level,
+            "any",
+            [...Array(99).keys()].map((i) => i + 1)
+        );
+
+        if (percentiles) {
+            console.log("Actual percentiles:");
+            console.log(percentiles.length);
+            for (const p of percentiles) {
+                console.log(p);
+            }
+        }
+    }
 })();
