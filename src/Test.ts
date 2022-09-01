@@ -45,7 +45,7 @@ async function otherStuff() {
     }
 
     console.time("profile");
-    let myProfile = await getProfile(userMatchesUsername("Conqu3red"));
+    let myProfile = await getProfile({ by: "display_name", value: "Conqu3red" });
     console.timeEnd("profile");
     console.log(myProfile);
     if (myProfile) {

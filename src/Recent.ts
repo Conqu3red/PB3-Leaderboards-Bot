@@ -7,7 +7,7 @@ import { selectLeaderboard } from "./GlobalLeaderboard";
 import { LeaderboardType, OldestEntry } from "./LeaderboardInterface";
 import { LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
-import { UserFilter } from "./utils/userFilter";
+import { matchesUserFilter, UserFilter } from "./utils/userFilter";
 
 export interface RecentEntry extends OldestEntry {
     compactName: string;
@@ -35,7 +35,9 @@ export async function getRecent(
                 board.top_history?.map((entry) => {
                     return { ...entry, compactName: level.compactName() };
                 }) ?? []
-            ).filter((entry) => !filters.userFilter || filters.userFilter.matches(entry.owner))
+            ).filter(
+                (entry) => !filters.userFilter || matchesUserFilter(filters.userFilter, entry.owner)
+            )
         );
     }
 

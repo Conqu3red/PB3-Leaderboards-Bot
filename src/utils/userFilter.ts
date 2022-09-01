@@ -1,14 +1,26 @@
 import { Remote } from "../RemoteLeaderboardInterface";
 
+export type FilterType = "display_name" | "id";
+
 export interface UserFilter {
-    matches: (user: Remote.User) => boolean;
+    by: FilterType;
+    value: string;
+}
+
+export function matchesUserFilter(filter: UserFilter, user: Remote.User): boolean {
+    switch (filter.by) {
+        case "display_name":
+            return user.display_name.toLowerCase() === filter.value;
+        case "id":
+            return user.id === filter.value;
+    }
 }
 
 export function userMatchesUsername(name: string): UserFilter {
     name = name.toLowerCase();
-    return { matches: (user) => user.display_name.toLowerCase() === name };
+    return { by: "display_name", value: name };
 }
 
 export function userMatchesID(id: string): UserFilter {
-    return { matches: (user) => user.id === id };
+    return { by: "id", value: id };
 }

@@ -11,7 +11,7 @@ import { arrowComponents, EditMessageType, PagedResponder } from "../../structur
 import { error } from "../../utils/embeds";
 import { N_ENTRIES as ENTRIES_PER_PAGE } from "../../../Consts";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
-import { UserFilter } from "../../../utils/userFilter";
+import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 
 interface LeaderboardOptions {
@@ -28,7 +28,7 @@ function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
 
         if (options.rank && entry.rank >= options.rank) return i;
         if (options.price && entry.value >= options.price) return i;
-        if (options.userFilter?.matches(entry.owner)) return i;
+        if (options.userFilter && matchesUserFilter(options.userFilter, entry.owner)) return i;
     }
 
     return 0;

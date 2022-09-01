@@ -7,7 +7,7 @@ import { BaseLevel } from "./resources/Level";
 import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
-import { UserFilter } from "./utils/userFilter";
+import { matchesUserFilter, UserFilter } from "./utils/userFilter";
 
 export interface GlobalPositions {
     all: GlobalEntry | null;
@@ -83,7 +83,7 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
 
         let entry: LeaderboardEntry | undefined = undefined;
         for (const score of board.top1000) {
-            if (!owner && user.matches(score.owner)) {
+            if (!owner && matchesUserFilter(user, score.owner)) {
                 owner = score.owner;
             }
             if (score.owner.id === owner?.id) {

@@ -13,7 +13,7 @@ import {
     renderGlobal,
 } from "../../../GlobalLeaderboard";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
-import { UserFilter } from "../../../utils/userFilter";
+import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 
 interface LeaderboardOptions {
@@ -31,7 +31,7 @@ function getBoardIndex(board: GlobalEntry[], options: LeaderboardOptions) {
 
         if (options.rank && entry.rank === options.rank) return i;
         if (options.score && entry.value === options.score) return i;
-        if (options.userFilter?.matches(entry.user)) return i;
+        if (options.userFilter && matchesUserFilter(options.userFilter, entry.user)) return i;
     }
 
     return 0;

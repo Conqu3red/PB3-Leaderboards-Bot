@@ -11,7 +11,7 @@ import {
 } from "./LeaderboardInterface";
 import { encodeLevelCode, LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
-import { UserFilter } from "./utils/userFilter";
+import { matchesUserFilter, UserFilter } from "./utils/userFilter";
 
 export function groupBy<T, R>(arr: T[], prop: (obj: T) => R): Map<R, T[]> {
     const map: Map<R, T[]> = new Map(Array.from(arr, (obj) => [prop(obj), []]));
@@ -129,7 +129,8 @@ export async function getOldest(
                 })
                 .filter(
                     (entry) =>
-                        !filters.userFilter || filters.userFilter.matches(entry.latestScore.owner)
+                        !filters.userFilter ||
+                        matchesUserFilter(filters.userFilter, entry.latestScore.owner)
                 )
         );
 
