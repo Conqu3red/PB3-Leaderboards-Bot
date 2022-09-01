@@ -128,7 +128,7 @@ export default new Command({
         .addIntegerOption((option) =>
             option.setName("rank").setDescription("Rank to jump to").setRequired(false)
         )
-        .addBooleanOption((option) =>
+        .addIntegerOption((option) =>
             option.setName("price").setDescription("Price to jump to").setRequired(false)
         )
         .toJSON(),

@@ -123,7 +123,7 @@ export default new Command({
         .addIntegerOption((option) =>
             option.setName("rank").setDescription("Rank to jump to").setRequired(false)
         )
-        .addBooleanOption((option) =>
+        .addIntegerOption((option) =>
             option.setName("score").setDescription("Score to jump to").setRequired(false)
         )
         .addBooleanOption((option) =>
