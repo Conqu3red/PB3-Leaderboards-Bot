@@ -7,7 +7,8 @@ TIME_FORMAT = "%d/%m/%Y-%H:%M"
 def migrate_times(old_data: dict):
     for entries in old_data.values():
         for entry in entries:
-            entry["time"] = int(datetime.datetime.strptime(entry["time"], TIME_FORMAT).timestamp())
+            if isinstance(entry["time"], str):
+                entry["time"] = int(datetime.datetime.strptime(entry["time"], TIME_FORMAT).timestamp())
 
 
 def convert_all():
