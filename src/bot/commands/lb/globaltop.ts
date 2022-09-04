@@ -11,6 +11,7 @@ import {
     GlobalOptions,
     LevelCategory,
     renderGlobal,
+    WorldFilter,
 } from "../../../GlobalLeaderboard";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
@@ -56,6 +57,13 @@ class PagedGlobalLeaderboard extends PagedResponder {
     getDetails() {
         let details: string[] = [];
         details.push(`${this.data.options.globalOptions.levelCategory} levels`);
+        if (this.data.options.globalOptions.worldFilter) {
+            details.push(
+                `World ${this.data.options.globalOptions.worldFilter.world}${
+                    this.data.options.globalOptions.worldFilter.isChallenge ? "c" : ""
+                }`
+            );
+        }
         if (this.data.options.unbroken) details.push("unbroken");
         return details.length === 0 ? "" : `(${details.join(", ")})`;
     }
@@ -92,6 +100,15 @@ class PagedGlobalLeaderboard extends PagedResponder {
             files: [attachment],
         };
     }
+}
+
+function parseWorld(world: string): WorldFilter | null {
+    world = world.toLowerCase();
+    let isChallenge = world.endsWith("c");
+    if (isChallenge) world = world.slice(0, -1);
+    let w = parseInt(world);
+    if (isNaN(w)) return null;
+    return { world: w, isChallenge };
 }
 
 export default new Command({
@@ -132,6 +149,25 @@ export default new Command({
                 .setDescription("Display total money spent")
                 .setRequired(false)
         )
+        .addStringOption((option) =>
+            option
+                .setName("world")
+                .setDescription("Display for specific world")
+                .setChoices(
+                    { name: "1", value: "1" },
+                    { name: "2", value: "2" },
+                    { name: "3", value: "3" },
+                    { name: "4", value: "4" },
+                    { name: "5", value: "5" },
+                    { name: "6", value: "6" },
+                    { name: "1c", value: "1c" },
+                    { name: "2c", value: "2c" },
+                    { name: "3c", value: "3c" },
+                    { name: "4c", value: "4c" },
+                    { name: "5c", value: "5c" }
+                )
+                .setRequired(false)
+        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
@@ -141,11 +177,22 @@ export default new Command({
         const rank = args.getInteger("rank", false);
         const score = args.getInteger("score", false);
         const moneyspent = args.getBoolean("moneyspent", false) ?? false;
+        const world = args.getString("world", false);
+
+        let worldFilter: WorldFilter | null = null;
+        if (world) {
+            worldFilter = parseWorld(world);
+            if (!worldFilter) {
+                await error(interaction, "Invalid world.");
+                return;
+            }
+        }
 
         const type: LeaderboardType = unbroken ? "unbroken" : "any";
         const globalOptions: GlobalOptions = {
             type,
             levelCategory: category,
+            worldFilter: worldFilter ?? undefined,
             scoreComputer: moneyspent ? "moneyspent" : "rank",
         };
 

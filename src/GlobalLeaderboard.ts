@@ -56,6 +56,11 @@ export const GlobalScoreByBudget: GlobalScoreComputer<CampaignLevel> = {
 
 export type GlobalScoreComputerType = "rank" | "moneyspent";
 
+export interface WorldFilter {
+    world: number;
+    isChallenge: boolean;
+}
+
 export const globalScoreComputers = {
     rank: GlobalScoreByRank,
     moneyspent: GlobalScoreByBudget,
@@ -64,6 +69,7 @@ export const globalScoreComputers = {
 export interface GlobalOptions {
     type: LeaderboardType;
     levelCategory: LevelCategory;
+    worldFilter?: WorldFilter;
     scoreComputer: GlobalScoreComputerType;
 }
 
@@ -121,23 +127,29 @@ async function collateBoards<T extends BaseLevel<any>>(
 }
 
 export async function globalLeaderboard(options?: GlobalOptions): Promise<GlobalEntry[] | null> {
-    let actualOptions = Object.assign(defaultOptions, options);
-    let scoreComputer = globalScoreComputers[actualOptions.scoreComputer];
-
-    if (!scoreComputer.isValidOptions(actualOptions)) {
+    options = Object.assign(defaultOptions, options);
+    let scoreComputer = globalScoreComputers[options.scoreComputer];
+    if (!scoreComputer.isValidOptions(options)) {
         return null;
     }
 
-    if (actualOptions.levelCategory !== "weekly") {
-        let levelFilter = levelFilters[actualOptions.levelCategory];
+    if (options.levelCategory !== "weekly") {
+        let levelFilter = levelFilters[options.levelCategory];
         await cacheManager.campaignManager.maybeReload();
         let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
-        return await collateBoards(campaignLevels, actualOptions);
+        if (options && options.worldFilter) {
+            campaignLevels = campaignLevels.filter(
+                (level) =>
+                    level.info.code.world === options?.worldFilter?.world &&
+                    level.info.code.isChallenge === options?.worldFilter?.isChallenge
+            );
+        }
+        return await collateBoards(campaignLevels, options);
     } else {
-        let levelFilter = levelFilters[actualOptions.levelCategory];
+        let levelFilter = levelFilters[options.levelCategory];
         await cacheManager.weeklyManager.maybeReload();
         let weeklyLevels = cacheManager.weeklyManager.weeklyLevels.filter(levelFilter);
-        return await collateBoards(weeklyLevels, actualOptions);
+        return await collateBoards(weeklyLevels, options);
     }
 }
 
