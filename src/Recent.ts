@@ -74,7 +74,11 @@ export async function renderRecentCanvas(board: RecentEntry[], index: number): P
         entry.rank.toString(),
         entry.compactName,
         entry.owner.display_name,
-        DateTime.fromSeconds(entry.time).toRelative({ base: now, style: "short" }) ?? "",
+        DateTime.fromSeconds(entry.time).toRelative({
+            base: now,
+            style: "short",
+            unit: ["days", "hours", "minutes", "seconds"],
+        }) ?? "",
         entry.didBreak ? "✱" : "",
     ]);
 
