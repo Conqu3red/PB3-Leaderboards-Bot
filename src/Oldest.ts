@@ -106,6 +106,7 @@ export interface OldestFilters {
 
 export interface PopulatedOldestEntry extends UserStreakTracker {
     compactName: string;
+    rank: number;
 }
 
 export async function getOldest(
@@ -125,7 +126,7 @@ export async function getOldest(
         levelEntries = levelEntries.concat(
             trackers
                 .map((entry) => {
-                    return { ...entry, compactName: code };
+                    return { ...entry, compactName: code, rank: 0 };
                 })
                 .filter(
                     (entry) =>
@@ -135,6 +136,16 @@ export async function getOldest(
         );
 
         // TODO: group entries that are from the same time?
+    }
+
+    levelEntries = levelEntries.sort((a, b) => a.initialTime - b.initialTime);
+
+    for (let i = 0; i < levelEntries.length; i++) {
+        levelEntries[i].rank = i + 1;
+
+        if (i > 0 && levelEntries[i - 1].initialTime == levelEntries[i].initialTime) {
+            levelEntries[i].rank = levelEntries[i - 1].rank; // propagate tied rank
+        }
     }
 
     return levelEntries;
@@ -163,10 +174,14 @@ export async function renderOldestCanvas(
     const now = DateTime.now();
 
     const data: CTData = chosen_entries.map((entry) => [
-        entry.latestScore.rank.toString(),
+        entry.rank.toString(),
         entry.compactName,
         entry.latestScore.owner.display_name,
-        DateTime.fromSeconds(entry.initialTime).toRelative({ base: now, style: "short" }) ?? "",
+        DateTime.fromSeconds(entry.initialTime).toRelative({
+            base: now,
+            style: "short",
+            unit: ["days", "hours", "minutes", "seconds"],
+        }) ?? "",
         entry.latestScore.didBreak ? "✱" : "",
         entry.firstToGetThisScore ? "✱" : "",
     ]);
