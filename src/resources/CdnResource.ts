@@ -1,4 +1,4 @@
-import axios, { ResponseType } from "axios";
+import axios, { AxiosError, ResponseType } from "axios";
 import fs from "fs";
 import path from "path";
 import { CDN_URL, DATA_DIR } from "../Consts";
@@ -33,7 +33,20 @@ export abstract class CdnResource<L, R> {
     }
 
     async reload() {
-        let remote = await this.loadFromRemote();
+        let remote: R;
+        try {
+            remote = await this.loadFromRemote();
+        } catch (e) {
+            if (axios.isAxiosError(e)) {
+                console.error(
+                    `Axios error while trying to reload ${this.localPath()}: `,
+                    e.toJSON()
+                );
+            } else {
+                console.error(`Error while trying to reload ${this.localPath()}:`, e);
+            }
+            return;
+        }
         let old = await this.loadFromFile();
         this.cachedResource = await this.processRemote(old, remote);
         this.save();
