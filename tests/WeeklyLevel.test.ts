@@ -1,5 +1,4 @@
 import {
-    CampaignLevelInfo,
     Leaderboard,
     LeaderboardEntry,
     LevelLeaderboards,

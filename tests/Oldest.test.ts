@@ -1,6 +1,5 @@
 import { promises as fs } from "fs";
 import {
-    CampaignLevelInfo,
     Leaderboard,
     LeaderboardEntry,
     LevelLeaderboards,
@@ -10,11 +9,12 @@ import { updateOldestDataAndPurgeCheated } from "../src/LeaderboardProcessors";
 import { CampaignLevel } from "../src/resources/CampaignLevel";
 import { Remote } from "../src/RemoteLeaderboardInterface";
 import assert from "assert";
+import { CampaignLevelInfo } from "../src/resources/CampaignIndex";
 
 function getTestLevel(): CampaignLevel {
     let levelInfo: CampaignLevelInfo = {
         id: "mAp2V",
-        identifier: { world: 1, level: 1, isChallenge: false },
+        code: { world: 1, level: 1, isChallenge: false },
         name: "Ten Meter Simple Bridge",
         budget: 10_000,
     };
