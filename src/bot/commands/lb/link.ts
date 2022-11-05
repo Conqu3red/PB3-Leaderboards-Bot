@@ -27,7 +27,7 @@ export default new Command({
         .addStringOption((option) =>
             option
                 .setName("user")
-                .setDescription("User to link with (begin with @) for an ID")
+                .setDescription("User to link with (begin with @ for an ID)")
                 .setRequired(false)
         )
         .addStringOption((option) =>
@@ -135,7 +135,7 @@ export default new Command({
 
             collector.on("collect", async (i) => {
                 if (i.customId === "user") {
-                    console.log(i.values[0]);
+                    //console.log(i.values[0]);
                     await linkUserWithID(i.user.id, i.values[0]);
                     await message.edit({
                         content: `Linked to user with ID of \`${i.values[0]}\``,

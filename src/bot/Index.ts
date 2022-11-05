@@ -14,7 +14,10 @@ if (!botToken) {
     process.exit(1);
 }
 
-export const bot = new ExtendedClient(botToken, [GatewayIntentBits.Guilds]);
+export const bot = new ExtendedClient(botToken, [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+]);
 
 sequelize.sync();
 cacheManager.backgroundUpdate();

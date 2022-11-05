@@ -91,7 +91,7 @@ export async function renderBoardComparison(
 
     const cMerged = createCanvas(BOARD_DIMENSIONS[0] * 4, BOARD_DIMENSIONS[1] * 2);
     const ctx = cMerged.getContext("2d");
-    console.log(c1.width, c1.height);
+    //console.log(c1.width, c1.height);
     ctx.drawImage(c1, 0, 0);
     ctx.drawImage(c2, BOARD_DIMENSIONS[0] * 2, 0);
 

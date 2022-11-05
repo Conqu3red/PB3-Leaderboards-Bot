@@ -4,7 +4,7 @@ import { cacheManager, CampaignManager, WeeklyManager } from "./resources/CacheM
 import { campaignBuckets } from "./resources/Buckets";
 import { configureHttp } from "./resources/ConfigureHttpAgents";
 import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
-import { getProfile } from "./Profile";
+import { getProfile, scoreCountThresholds } from "./Profile";
 import { sumOfBest } from "./SumOfBest";
 import { getOldest, getTopUserStreaks, groupBy } from "./Oldest";
 import { TIME_FORMAT } from "./Consts";
@@ -13,6 +13,7 @@ import { renderBoard } from "./TopLeaderboard";
 import { findAllUsersWithUsername } from "./UserFinder";
 import { userMatchesUsername } from "./utils/userFilter";
 import { getAllPercentiles, implyMissingBuckets } from "./Milestones";
+import { Remote } from "./RemoteLeaderboardInterface";
 
 async function weeklyTest() {
     console.log(await weeklyIndex.lastReloadTime());
@@ -141,4 +142,61 @@ async function otherStuff() {
             }
         }
     }
+    /* let userMap: Map<string, Remote.User> = new Map();
+    let plusOneCounts: Map<string, number> = new Map();
+
+    console.log("Checking...");
+    for (const level of cacheManager.campaignManager.campaignLevels) {
+        let board = (await level.get()).any.top1000;
+        let prevRankScore = -1;
+        let prevRank = -1;
+        for (let score of board) {
+            if (score.rank > 100) break;
+            if (score.value === prevRankScore + 1) {
+                plusOneCounts.set(score.owner.id, (plusOneCounts.get(score.owner.id) ?? 0) + 1);
+                userMap.set(score.owner.id, score.owner);
+            }
+            if (score.rank !== prevRank) {
+                prevRankScore = score.value;
+                prevRank = score.rank;
+            }
+        }
+    }
+    plusOneCounts = new Map([...plusOneCounts.entries()].sort((a, b) => b[1] - a[1]));
+
+    for (const [uid, count] of plusOneCounts) {
+        const user = userMap.get(uid);
+        if (!user) continue;
+        console.log(`${count}: ${user.display_name} (${user.id})`);
+    } */
+
+    /* let p = await getProfile({ by: "display_name", value: "tests" });
+    if (p) {
+        for (const score of p.stats.levelScores) {
+            if (score.score) {
+                let level = await cacheManager.campaignManager.getByCode(score.compactName);
+                if (level) {
+                    let board = (await level.get()).any.top1000;
+                    for (let i = 0; i < board.length; i++) {
+                        if (board[i].owner.id === score.score.owner.id) {
+                            //console.log(level.compactName());
+                            if (board[i - 1].value !== score.score.value - 1) {
+                                break;
+                            }
+                            console.log(
+                                `${level.compactName()} Rank ${score.score.rank} Lower: ${
+                                    board[i - 1].owner.display_name
+                                } $${board[i - 1].value} Cheated? ${
+                                    score.score.owner.display_name
+                                } $${score.score.value}`
+                            );
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        console.log("No profile");
+    } */
 })();
