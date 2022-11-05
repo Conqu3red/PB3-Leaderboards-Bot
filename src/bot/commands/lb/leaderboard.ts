@@ -75,9 +75,9 @@ class PagedLeaderboard extends PagedResponder {
             content: "",
             embeds: [
                 {
-                    title: `Leaderboard for ${encodeLevelCode(this.data.level.info.code)}${
-                        this.data.options.unbroken ? " (unbroken)" : ""
-                    }`,
+                    title: `Leaderboard for ${encodeLevelCode(this.data.level.info.code)}: ${
+                        this.data.level.info.name
+                    }${this.data.options.unbroken ? " (unbroken)" : ""}`,
                     description: `Showing top ${this.data.board.top1000.length.toLocaleString(
                         "en-US"
                     )} entries out of ${this.data.board.metadata.uniqueRanksCount.toLocaleString(
