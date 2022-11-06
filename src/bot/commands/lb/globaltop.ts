@@ -164,7 +164,8 @@ export default new Command({
                     { name: "2c", value: "2c" },
                     { name: "3c", value: "3c" },
                     { name: "4c", value: "4c" },
-                    { name: "5c", value: "5c" }
+                    { name: "5c", value: "5c" },
+                    { name: "6c", value: "6c" }
                 )
                 .setRequired(false)
         )
