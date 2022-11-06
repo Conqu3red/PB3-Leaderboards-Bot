@@ -14,11 +14,15 @@ import { cacheManager } from "./resources/CacheManager";
 import { matchesUserFilter, UserFilter } from "./utils/userFilter";
 
 export function groupBy<T, R>(arr: T[], prop: (obj: T) => R): Map<R, T[]> {
-    const map: Map<R, T[]> = new Map(Array.from(arr, (obj) => [prop(obj), []]));
-    arr.forEach((obj) => {
+    const map: Map<R, T[]> = new Map();
+    for (const obj of arr) {
         let v = map.get(prop(obj));
-        if (v) v.push(obj);
-    });
+        if (v) {
+            v.push(obj);
+        } else {
+            map.set(prop(obj), [obj]);
+        }
+    }
     return map;
 }
 
