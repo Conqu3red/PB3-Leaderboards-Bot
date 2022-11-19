@@ -91,7 +91,7 @@ export abstract class CdnResource<L, R> {
     }
 
     async save(): Promise<void> {
-        if (this.cachedResource != null) {
+        if (this.cachedResource) {
             const filePath = this.file();
 
             await fs.promises.writeFile(filePath, JSON.stringify(this.cachedResource), "utf-8");
@@ -99,7 +99,7 @@ export abstract class CdnResource<L, R> {
     }
 
     async get(): Promise<L> {
-        if (this.cachedResource !== null) {
+        if (this.cachedResource) {
             return this.cachedResource;
         }
         if (await this.needsReload()) {

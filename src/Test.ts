@@ -26,6 +26,8 @@ async function otherStuff() {
     let level = await cacheManager.campaignManager.getByCode("1-1");
     console.log(level);
 
+    await cacheManager.warmupCache();
+
     await campaignBuckets.reload();
     let buckets = await campaignBuckets.get();
     let levelBuckets = buckets["mAp2V"];
@@ -67,7 +69,7 @@ async function otherStuff() {
     configureHttp();
 
     // await weeklyTest();
-    // await otherStuff();
+    await otherStuff();
 
     await cacheManager.campaignManager.maybeReload();
 

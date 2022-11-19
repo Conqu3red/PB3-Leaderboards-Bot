@@ -20,6 +20,7 @@ export class CampaignManager {
     campaignLevels: CampaignLevel[] = [];
 
     async populate() {
+        // FIXME: population shouldn't overwrite memory cached data
         let levelInfos = await loadCampaignLevelInfos();
         this.campaignLevels = levelInfos.map(
             (info) => new CampaignLevel(info, CampaignManager.CAMPAIGN_LEVEL_RELOAD_INTERVAL)
@@ -27,16 +28,17 @@ export class CampaignManager {
     }
 
     async maybeReload() {
-        let reloadRequired =
-            this.campaignLevels.length === 0 ||
-            this.campaignLevels.some((level) => level.needsReload());
-        if (reloadRequired) await this.populate();
+        let reloadRequired = this.campaignLevels.some((level) => level.needsReload());
+
+        if (this.campaignLevels.length === 0) {
+            await this.populate();
+            reloadRequired = true;
+        }
 
         await bulkMaybeReload(this.campaignLevels);
     }
 
     async timeToNextReload(): Promise<number> {
-        this.populate();
         return Math.min(
             ...(await Promise.all(this.campaignLevels.map((level) => level.timeUntilNextReload())))
         );
@@ -57,6 +59,12 @@ export class CampaignManager {
             levelCodeEqual(level.info.code, actualCode)
         );
         return level ?? null;
+    }
+
+    async warmupCache() {
+        for (const level of this.campaignLevels) {
+            level.get();
+        }
     }
 }
 
@@ -82,7 +90,6 @@ export class WeeklyManager {
     }
 
     async timeToNextReload(): Promise<number> {
-        await this.populate();
         return Math.min(
             ...(await Promise.all(this.weeklyLevels.map((level) => level.timeUntilNextReload())))
         );
@@ -98,6 +105,12 @@ export class WeeklyManager {
         await this.maybeReload();
         let level = this.weeklyLevels.find((level) => level.info.week === week);
         return level ?? null;
+    }
+
+    async warmupCache() {
+        for (const level of this.weeklyLevels) {
+            level.get();
+        }
     }
 }
 
@@ -125,6 +138,11 @@ export class CacheManager {
 
             await this.maybeReload();
         }
+    }
+
+    async warmupCache() {
+        await this.campaignManager.warmupCache();
+        await this.weeklyManager.warmupCache();
     }
 }
 
