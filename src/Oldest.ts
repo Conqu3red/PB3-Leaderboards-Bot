@@ -68,7 +68,7 @@ export function getTopUserStreaks(board: Leaderboard): UserStreakTracker[] | nul
                     firstToGetThisScore: false,
                 };
             }
-            topUsers.set(score.id, user);
+            topUsers.set(score.owner.id, user);
         }
 
         // remove top users that no longer meet the top score
@@ -81,9 +81,7 @@ export function getTopUserStreaks(board: Leaderboard): UserStreakTracker[] | nul
         /* console.log(
             [...topUsers.values()].map(
                 (user) =>
-                    `${timeToString(user.initialTime)} $${user.latestScore.value} (${
-                        user.latestScore.owner.display_name
-                    })`
+                    `${user.initialTime} $${user.latestScore.value} (${user.latestScore.owner.display_name})`
             )
         ); */
     }
