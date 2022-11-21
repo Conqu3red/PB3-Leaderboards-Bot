@@ -126,6 +126,9 @@ export class CacheManager {
     }
 
     async backgroundUpdate() {
+        await this.campaignManager.populate();
+        await this.weeklyManager.populate();
+
         while (true) {
             let nextReloadTime = Math.min(
                 await this.campaignManager.timeToNextReload(),
