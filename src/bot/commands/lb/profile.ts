@@ -71,8 +71,12 @@ class PagedProfileLeaderboard extends PagedResponder {
     }
 
     generateScoreCountPart(scoreCount: ScoreCount): string {
-        const keys: (keyof ScoreCount)[] = ["overall", "regular", "challenge", "weekly"];
-        return keys.map((k) => `${k}: \`${scoreCount[k]}\``).join("\n");
+        return (
+            `Overall: \`${scoreCount["overall"]}\`\n` +
+            `Regular: \`${scoreCount["regular"]}\`\n` +
+            `Challenge: \`${scoreCount["challenge"]}\`\n` +
+            `Weekly: \`${scoreCount["weekly"]}\``
+        );
     }
 
     generateScoreCountParts(): EmbedField[] {
@@ -178,7 +182,7 @@ export default new Command({
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const user = args.getString("user", false);
-        const unbroken = args.getString("unbroken", false) ?? false;
+        const unbroken = args.getBoolean("unbroken", false) ?? false;
 
         const type: LeaderboardType = unbroken ? "unbroken" : "any";
         const profileOptions: Options = {
