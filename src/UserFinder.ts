@@ -2,8 +2,6 @@ import { LeaderboardEntry } from "./LeaderboardInterface";
 import { Remote } from "./RemoteLeaderboardInterface";
 import { BaseLevel } from "./resources/Level";
 
-// TODO: find user id of a certain username with a specific score on a specific level
-
 export interface LabledScore {
     compactName: string;
     score: LeaderboardEntry;

@@ -103,7 +103,7 @@ export type LevelCategory = "all" | "regular" | "challenge" */
 
 export interface OldestFilters {
     levelCode?: LevelCode;
-    userFilter?: UserFilter; // TODO: support id and discord link
+    userFilter?: UserFilter;
 }
 
 export interface PopulatedOldestEntry extends UserStreakTracker {

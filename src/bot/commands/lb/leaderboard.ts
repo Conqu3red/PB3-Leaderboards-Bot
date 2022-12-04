@@ -22,7 +22,6 @@ interface LeaderboardOptions {
 }
 
 function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
-    // TODO: search for discord user and search for user ID
     for (let i = 0; i < board.top1000.length; i++) {
         const entry = board.top1000[i];
 

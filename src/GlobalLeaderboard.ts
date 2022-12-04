@@ -9,7 +9,7 @@ import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
 
-export type LevelCategory = "all" | "regular" | "challenge" | "weekly"; // TODO: add "weekly"
+export type LevelCategory = "all" | "regular" | "challenge" | "weekly";
 
 const levelFilters = {
     all: (level: CampaignLevel) => true,
@@ -90,7 +90,6 @@ async function collateBoards<T extends BaseLevel<any>>(
     let userScores: Map<string, GlobalEntry> = new Map();
     let scoreComputer: GlobalScoreComputer<T> = globalScoreComputers[options.scoreComputer];
     const startScore = scoreComputer.baseScore(levels);
-    // TODO: option for moneyspent
 
     for (const level of levels) {
         const boards = await level.get();

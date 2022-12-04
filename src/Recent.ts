@@ -14,7 +14,7 @@ export interface RecentEntry extends OldestEntry {
 }
 
 export interface RecentFilters {
-    userFilter?: UserFilter; // TODO: support display_name + ID + discord link?
+    userFilter?: UserFilter;
     levelCode?: LevelCode;
 }
 

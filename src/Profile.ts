@@ -154,9 +154,6 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
             scoreCounts,
         },
     };
-
-    // TODO: get users scores from every level
-    // TODO: score counts and global positions
 }
 
 export async function renderProfileLevelScores(

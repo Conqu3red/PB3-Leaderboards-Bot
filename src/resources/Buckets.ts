@@ -69,7 +69,7 @@ export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
             levels[level.id] = {
                 any: level.any.map((item: any) => (item.startRank == -1 ? null : item)),
                 unbroken: level.unbroken.map((item: any) => (item.startRank == -1 ? null : item)),
-            }; // TODO: fix
+            };
         }
         return levels;
     },

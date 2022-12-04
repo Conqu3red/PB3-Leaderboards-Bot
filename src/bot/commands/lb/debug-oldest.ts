@@ -39,8 +39,6 @@ export default new Command({
             )
         ).setName(`${level.compactName()}.json`);
 
-        // TODO: file name, fixme
-
         await interaction.editReply({ files: [attachment] });
     },
 });
