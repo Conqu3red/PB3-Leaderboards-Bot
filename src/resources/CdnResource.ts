@@ -84,6 +84,8 @@ export abstract class CdnResource<L, R> {
         try {
             data = JSON.parse(await fs.promises.readFile(filePath, "utf8"));
         } catch {
+            // This is a fatal error.
+            console.error(`FATAL: failed to load ${this.localPath()}`);
             data = this.defaultData;
         }
         this.cachedResource = data;
