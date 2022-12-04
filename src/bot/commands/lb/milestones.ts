@@ -72,7 +72,7 @@ export default new Command({
             await interaction.editReply({
                 embeds: [
                     {
-                        title: `Milestones for ${level.compactName()}${
+                        title: `Milestones for ${level.compactName()}: ${level.info.name}${
                             unbroken ? " (unbroken)" : ""
                         }`,
                         description: `A score of \`$${price.toLocaleString(

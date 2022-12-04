@@ -154,7 +154,7 @@ export async function renderPercentilesCanvas(percentiles: Percentile[]): Promis
 
     const data: CTData = percentiles.map((p) => [
         `${p.percentile}%`,
-        p.bucket.endRank.toString(),
+        p.bucket.endRank.toLocaleString("en-US"),
         `$${p.bucket.endValue.toLocaleString("en-US")}`,
     ]);
 
