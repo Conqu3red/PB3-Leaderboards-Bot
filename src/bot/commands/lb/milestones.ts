@@ -110,6 +110,9 @@ export default new Command({
                         title: `Milestones for ${level.compactName()}${
                             unbroken ? " (unbroken)" : ""
                         }`,
+                        description: `This level has a budget of $${level.info.budget.toLocaleString(
+                            "en-US"
+                        )}.`,
                         color: 0x3586ff,
                         image: {
                             url: "attachment://percentiles.png",

@@ -96,7 +96,10 @@ export default new Command({
         const matchingUsers = (await findAllUsersWithUsername(levels, user)).slice(0, 25); // limit of 25
 
         if (matchingUsers.length === 0) {
-            await error(interaction, "No users found that match the specified username");
+            await error(
+                interaction,
+                "No users found that match the specified username. You must have a score in the top 1000 on a level for the bot to be able to identify you."
+            );
         } else {
             const message = await interaction.editReply({
                 content: "Select a user:",
