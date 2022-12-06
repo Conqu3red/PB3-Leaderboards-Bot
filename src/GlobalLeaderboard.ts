@@ -108,18 +108,13 @@ async function collateBoards<T extends BaseLevel<any>>(
 
     // Sort and compute ranks
 
-    let sorted = [...userScores.values()].sort((a, b) => a.value - b.value);
+    let results = [...userScores.values()].sort((a, b) => a.value - b.value);
 
-    let results: GlobalEntry[] = [];
-    for (let i = 0; i < sorted.length; i++) {
-        let entry = sorted[i];
-        entry.rank = i + 1;
-
-        if (i > 0 && sorted[i - 1].value == sorted[i].value) {
-            entry.rank = sorted[i - 1].rank; // propagate tied rank
+    for (let i = 0; i < results.length; i++) {
+        results[i].rank = i + 1;
+        if (i > 0 && results[i - 1].value == results[i].value) {
+            results[i].rank = results[i - 1].rank; // propagate tied rank
         }
-
-        results.push(entry);
     }
 
     return results;

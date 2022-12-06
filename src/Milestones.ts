@@ -69,7 +69,12 @@ function lerp(a: number, b: number, t: number) {
 
 export function implyMissingBuckets(buckets: (LevelBucket | null)[]): LevelBucket[] {
     let result: LevelBucket[] = [];
-    let prevValidBucket: LevelBucket | null = null;
+    let prevValidBucket: LevelBucket = {
+        startRank: 0,
+        endRank: 0,
+        startValue: 0,
+        endValue: 0,
+    };
     for (let i = 0; i < buckets.length; i++) {
         const bucket = buckets[i];
         if (bucket) {
@@ -78,12 +83,7 @@ export function implyMissingBuckets(buckets: (LevelBucket | null)[]): LevelBucke
             result.push(bucket);
         } else {
             // we began a n length streak of null buckets, we need to fix them.
-            const startBucket = prevValidBucket ?? {
-                startRank: 0,
-                endRank: 0,
-                startValue: 0,
-                endValue: 0,
-            };
+            const startBucket = prevValidBucket;
             let endBucket: LevelBucket | null = null;
             let j = 0;
             // find next valid bucket
@@ -117,6 +117,7 @@ export function implyMissingBuckets(buckets: (LevelBucket | null)[]): LevelBucke
                 // populate simply
                 for (let k = 0; k < j; k++) {
                     result.push(startBucket);
+                    // FIXME: repeating the start bucket may cause issues in rare cases
                 }
             }
 
