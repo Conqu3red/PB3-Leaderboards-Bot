@@ -1,4 +1,4 @@
-import { CdnResource } from "./CdnResource";
+import { RemoteResource } from "./RemoteResource";
 import { weeklyIndex } from "./WeeklyIndex";
 import { WeeklyLevel } from "./WeeklyLevel";
 import { loadCampaignLevelInfos } from "./CampaignIndex";
@@ -7,7 +7,7 @@ import { LevelCode, levelCodeEqual, parseLevelCode } from "../LevelCode";
 import { campaignBuckets } from "./Buckets";
 import { asyncSetTimeout } from "../utils/asyncTimeout";
 
-export async function bulkMaybeReload(resources: CdnResource<any, any>[]) {
+export async function bulkMaybeReload(resources: RemoteResource<any>[]) {
     return Promise.all(
         resources.map(async (resource) => {
             if (await resource.needsReload()) await resource.reload();
@@ -60,12 +60,6 @@ export class CampaignManager {
         );
         return level ?? null;
     }
-
-    async warmupCache() {
-        for (const level of this.campaignLevels) {
-            level.get();
-        }
-    }
 }
 
 export class WeeklyManager {
@@ -106,12 +100,6 @@ export class WeeklyManager {
         let level = this.weeklyLevels.find((level) => level.info.week === week);
         return level ?? null;
     }
-
-    async warmupCache() {
-        for (const level of this.weeklyLevels) {
-            level.get();
-        }
-    }
 }
 
 export class CacheManager {
@@ -141,11 +129,6 @@ export class CacheManager {
 
             await this.maybeReload();
         }
-    }
-
-    async warmupCache() {
-        await this.campaignManager.warmupCache();
-        await this.weeklyManager.warmupCache();
     }
 }
 

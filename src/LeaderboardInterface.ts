@@ -7,9 +7,14 @@ export interface LevelLeaderboards {
 
 export interface Leaderboard {
     top1000: LeaderboardEntry[];
-    top_history: OldestEntry[] | undefined;
     metadata: Remote.LeaderboardMetadata;
 }
+
+/* export interface Leaderboard {
+    top1000: LeaderboardEntry[];
+    top_history: OldestEntry[] | undefined;
+    metadata: Remote.LeaderboardMetadata;
+} */
 
 export interface LeaderboardEntry extends Remote.LeaderboardEntry {
     rank: number;
@@ -17,6 +22,7 @@ export interface LeaderboardEntry extends Remote.LeaderboardEntry {
 
 export interface OldestEntry extends LeaderboardEntry {
     time: number; // epoch seconds
+    cheated: boolean;
 }
 
 export interface WeeklyLevelInfo {

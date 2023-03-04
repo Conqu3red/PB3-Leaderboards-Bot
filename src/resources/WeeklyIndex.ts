@@ -1,4 +1,4 @@
-import { CdnResource, SimpleResource } from "./CdnResource";
+import { SimpleResource } from "./RemoteResource";
 import { WeeklyLevelInfo } from "../LeaderboardInterface";
 
 export const weeklyIndex = new SimpleResource<WeeklyLevelInfo[], WeeklyLevelInfo[]>(
@@ -6,5 +6,5 @@ export const weeklyIndex = new SimpleResource<WeeklyLevelInfo[], WeeklyLevelInfo
     "weeklyChallenges.json",
     "manifests/weeklyChallenges.json",
     [],
-    async (old, remote) => remote
+    async (remote) => remote
 );

@@ -28,13 +28,12 @@ export default new Command({
             await error(interaction, "Unknown level.");
             return;
         }
-        const boards = await level.get();
 
         const attachment = new AttachmentBuilder(
             Buffer.from(
                 JSON.stringify({
-                    any: { top_history: boards.any.top_history },
-                    unbroken: { top_history: boards.any.top_history },
+                    any: { top_history: level.getHistory(false) },
+                    unbroken: { top_history: level.getHistory(true) },
                 })
             )
         ).setName(`${level.compactName()}.json`);

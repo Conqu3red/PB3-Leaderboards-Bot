@@ -14,11 +14,9 @@ export async function sumOfBest(type: LeaderboardType): Promise<SumsOfBest> {
         regular: 0,
         challenge: 0,
     };
-    await cacheManager.campaignManager.maybeReload();
 
     for (const level of cacheManager.campaignManager.campaignLevels) {
-        const boards = await level.get();
-        const board = selectLeaderboard(boards, type);
+        const board = level.get(type === "unbroken");
         if (board.top1000.length > 0) {
             sumsOfBest.overall += board.top1000[0].value;
             if (level.info.code.isChallenge) {

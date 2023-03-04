@@ -17,30 +17,23 @@ export async function findAllUsersWithUsernameOnLevel(
     username: string
 ): Promise<Map<string, FoundUser>> {
     username = username.toLowerCase();
-    let boards = await level.get();
     let users: Map<string, FoundUser> = new Map();
-    for (const entry of boards.any.top1000) {
-        if (entry.owner.display_name.toLocaleLowerCase() === username) {
-            users.set(entry.owner.id, {
-                user: entry.owner,
-                score: {
-                    score: entry,
-                    compactName: level.compactName(),
-                },
-            });
-        }
-    }
-    for (const entry of boards.unbroken.top1000) {
-        if (entry.owner.display_name.toLocaleLowerCase() === username) {
-            if (!users.has(entry.owner.id))
+    let boards = [level.get(false), level.get(true)];
+    let unbroken = false;
+
+    for (const board of boards) {
+        for (const entry of board.top1000) {
+            if (entry.owner.display_name.toLocaleLowerCase() === username) {
                 users.set(entry.owner.id, {
                     user: entry.owner,
                     score: {
                         score: entry,
-                        compactName: `${level.compactName()} (unbroken)`,
+                        compactName: level.compactName() + (unbroken ? " (unbroken)" : ""),
                     },
                 });
+            }
         }
+        unbroken = true;
     }
 
     return users;

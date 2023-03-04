@@ -1,4 +1,4 @@
-import { Leaderboard } from "../../../LeaderboardInterface";
+import { Leaderboard, LeaderboardEntry } from "../../../LeaderboardInterface";
 import { encodeLevelCode, LevelCode, parseLevelCode } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
@@ -56,16 +56,16 @@ class PagedLeaderboard extends PagedResponder {
         let board = this.data.comparisonBoard
             ? await renderBoardComparison(
                   {
-                      board: this.data.board,
+                      entries: this.data.board.top1000,
                       label: encodeLevelCode(this.data.level.info.code),
                   },
                   {
-                      board: this.data.comparisonBoard,
+                      entries: this.data.comparisonBoard.top1000,
                       label: `${encodeLevelCode(this.data.level.info.code)}c`,
                   },
                   this.page * ENTRIES_PER_PAGE
               )
-            : await renderBoard({ board: this.data.board }, this.page * ENTRIES_PER_PAGE);
+            : await renderBoard({ entries: this.data.board.top1000 }, this.page * ENTRIES_PER_PAGE);
         let shortTime = DateTime.fromMillis(this.data.updateTime).toRelative({ style: "short" });
         let uuid = uuidv4();
 
@@ -165,8 +165,7 @@ export default new Command({
             await error(interaction, "Unknown level.");
             return;
         }
-        const boards = await level.get();
-        const board = unbroken ? boards.unbroken : boards.any;
+        const board = level.get(unbroken);
 
         let comparisonBoard: Leaderboard | undefined;
         if (compareChallenge) {
@@ -174,8 +173,7 @@ export default new Command({
                 ...levelCode,
                 isChallenge: true,
             });
-            const cBoards = await comparisonLevel?.get();
-            comparisonBoard = unbroken ? cBoards?.unbroken : cBoards?.any;
+            comparisonBoard = await comparisonLevel?.get(unbroken);
         }
 
         const paged = new PagedLeaderboard(client, interaction, {
@@ -183,7 +181,7 @@ export default new Command({
             board,
             comparisonBoard,
             options: { unbroken, userFilter, rank, price },
-            updateTime: await level.lastReloadTime(),
+            updateTime: await level.lastReloadTimeMs,
         });
         await paged.start();
     },

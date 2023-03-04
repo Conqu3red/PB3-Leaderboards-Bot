@@ -32,11 +32,9 @@ export interface UserStreakTracker {
     firstToGetThisScore: boolean;
 }
 
-export function getTopUserStreaks(board: Leaderboard): UserStreakTracker[] | null {
-    if (!board.top_history) return null;
-
+export function getTopUserStreaks(history: OldestEntry[]): UserStreakTracker[] | null {
     //console.log(board.top_history.length);
-    let topHistory: OldestEntry[] = board.top_history.sort((a, b) => a.time - b.time);
+    let topHistory: OldestEntry[] = history.sort((a, b) => a.time - b.time);
 
     let timeBrackets: Map<number, OldestEntry[]> = groupBy(topHistory, (obj) => obj.time);
 
@@ -117,12 +115,10 @@ export async function getOldest(
 ): Promise<PopulatedOldestEntry[]> {
     let levelEntries: PopulatedOldestEntry[] = [];
 
-    await cacheManager.campaignManager.maybeReload();
     for (const level of cacheManager.campaignManager.campaignLevels) {
         if (filters.levelCode && !levelCodeEqual(level.info.code, filters.levelCode)) continue;
-        const boards = await level.get();
-        const board = selectLeaderboard(boards, type);
-        const trackers = getTopUserStreaks(board) ?? [];
+        const history = level.getHistory(type === "unbroken");
+        const trackers = getTopUserStreaks(history) ?? [];
         const code = encodeLevelCode(level.info.code);
 
         levelEntries = levelEntries.concat(

@@ -2,24 +2,23 @@ import { LevelLeaderboards, WeeklyLevelInfo } from "../LeaderboardInterface";
 import { BaseLevel } from "./Level";
 import { Remote } from "../RemoteLeaderboardInterface";
 import { processRemoteLeaderboard } from "../LeaderboardProcessors";
+import database from "./Lmdb";
 
 export class WeeklyLevel extends BaseLevel<WeeklyLevelInfo> {
-    async processRemote(
-        old: LevelLeaderboards,
-        remote: Remote.LevelLeaderboards
-    ): Promise<LevelLeaderboards> {
-        let processed: LevelLeaderboards = {
-            any: processRemoteLeaderboard(remote.any),
-            unbroken: processRemoteLeaderboard(remote.unbroken),
-        };
-
-        // Weekly levels do not keep track of oldest data.
-
-        return processed;
+    lmdbKey(): string {
+        return `WC:${this.info.id}`;
     }
 
-    localPath(): string {
-        return `WC.${this.info.id}.json`;
+    async process(remote: Remote.LevelLeaderboards) {
+        const any = this.get(false);
+        const anyNew = processRemoteLeaderboard(remote.any);
+        const unbroken = this.get(true);
+        const unbrokenNew = processRemoteLeaderboard(remote.unbroken);
+
+        await database.transaction(async () => {
+            await this.set(anyNew, false);
+            await this.set(unbrokenNew, true);
+        });
     }
 
     remotePath(): string {

@@ -102,7 +102,7 @@ export default new Command({
             );
         } else {
             const message = await interaction.editReply({
-                content: "Select a user:",
+                content: `Found ${matchingUsers.length} users with a matching username.`,
                 components: [
                     new ActionRowBuilder<SelectMenuBuilder>().addComponents(
                         new SelectMenuBuilder()

@@ -69,17 +69,13 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
         ])
     );
 
-    await cacheManager.campaignManager.maybeReload();
-    await cacheManager.weeklyManager.maybeReload();
-
     const levels = [
         ...cacheManager.campaignManager.campaignLevels,
         ...cacheManager.weeklyManager.weeklyLevels,
     ];
 
     for (const level of levels) {
-        let boards = await level.get();
-        let board = selectLeaderboard(boards, options.type);
+        let board = level.get(options.type === "unbroken");
 
         let entry: LeaderboardEntry | undefined = undefined;
         for (const score of board.top1000) {

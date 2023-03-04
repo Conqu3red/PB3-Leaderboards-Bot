@@ -14,9 +14,10 @@ import { findAllUsersWithUsername } from "./UserFinder";
 import { userMatchesUsername } from "./utils/userFilter";
 import { getAllPercentiles, implyMissingBuckets } from "./Milestones";
 import { Remote } from "./RemoteLeaderboardInterface";
+import database from "./resources/Lmdb";
 
 async function weeklyTest() {
-    console.log(await weeklyIndex.lastReloadTime());
+    console.log(weeklyIndex.lastReloadTimeMs);
     let latest = await cacheManager.weeklyManager.getLatest();
 
     console.log(latest);
@@ -25,8 +26,6 @@ async function weeklyTest() {
 async function otherStuff() {
     let level = await cacheManager.campaignManager.getByCode("1-1");
     console.log(level);
-
-    await cacheManager.warmupCache();
 
     await campaignBuckets.reload();
     let buckets = await campaignBuckets.get();
@@ -42,6 +41,15 @@ async function otherStuff() {
         scoreComputer: "moneyspent",
     });
     console.timeEnd("globalBoard");
+
+    console.time("globalBoard");
+    globalBoard = await globalLeaderboard({
+        type: "any",
+        levelCategory: "all",
+        scoreComputer: "rank",
+    });
+    console.timeEnd("globalBoard");
+
     if (globalBoard) {
         console.log(`Global board, length: ${globalBoard.length}`);
         console.log(globalBoard[0]);
@@ -65,57 +73,8 @@ async function otherStuff() {
     console.log(groupBy([1, 1, 2, 3, 3], (obj) => obj));
 }
 
-(async () => {
-    configureHttp();
-
-    // await weeklyTest();
-    await otherStuff();
-
-    await cacheManager.campaignManager.maybeReload();
-
+async function buckets() {
     let level = await cacheManager.campaignManager.getByCode("1-1");
-
-    if (level) {
-        let board = (await level.get()).any;
-        console.time("oldest");
-        let t = getTopUserStreaks(board);
-        console.timeEnd("oldest");
-        if (t) {
-            console.log(t.length);
-            let now = DateTime.now();
-            for (const user of t) {
-                console.log(
-                    `${Math.floor(
-                        now.diff(DateTime.fromSeconds(user.initialTime)).as("days")
-                    )}d ago: $${user.latestScore.value} (${user.latestScore.owner.display_name})`
-                );
-            }
-        } else {
-            console.log("no results");
-        }
-
-        renderBoard({ board }, 0);
-    }
-
-    console.time("full oldest");
-    let oldestResults = await getOldest("any", {});
-    console.timeEnd("full oldest");
-    console.log(oldestResults.length);
-    let now = DateTime.now();
-    for (const user of oldestResults) {
-        console.log(
-            `${Math.floor(now.diff(DateTime.fromSeconds(user.initialTime)).as("days"))}d ago: $${
-                user.latestScore.value
-            } (${user.latestScore.owner.display_name})`
-        );
-        break;
-    }
-
-    console.log(
-        "Users with name:",
-        await findAllUsersWithUsername(cacheManager.campaignManager.campaignLevels, "alex")
-    );
-
     await campaignBuckets.reload();
     let buckets = await campaignBuckets.get();
     let levelBuckets = buckets["mAp2V"];
@@ -144,6 +103,75 @@ async function otherStuff() {
             }
         }
     }
+
+    let most: string = "";
+    let max = 0;
+    for (const l of cacheManager.campaignManager.campaignLevels) {
+        let p = ((await getAllPercentiles(l, "any", [100])) ?? [])[0];
+        if (p.bucket.endValue > max) {
+            max = p.bucket.endValue;
+            most = l.compactName();
+        }
+    }
+    console.log(`${most}: $${max.toLocaleString("en-US")}`);
+}
+
+async function main() {
+    configureHttp();
+
+    // await weeklyTest();
+    await otherStuff();
+
+    await cacheManager.campaignManager.maybeReload();
+    await cacheManager.weeklyManager.maybeReload();
+
+    //await Promise.all(cacheManager.campaignManager.campaignLevels.map((l) => l.reload()));
+
+    let level = await cacheManager.campaignManager.getByCode("1-1");
+
+    if (level) {
+        let board = level.get(false);
+        console.time("oldest");
+        let t = getTopUserStreaks(level.getHistory(false));
+        console.timeEnd("oldest");
+        if (t) {
+            console.log(t.length);
+            let now = DateTime.now();
+            for (const user of t) {
+                console.log(
+                    `${Math.floor(
+                        now.diff(DateTime.fromSeconds(user.initialTime)).as("days")
+                    )}d ago: $${user.latestScore.value} (${user.latestScore.owner.display_name})`
+                );
+            }
+        } else {
+            console.log("no results");
+        }
+
+        //renderBoard({ board }, 0);
+    }
+
+    console.time("full oldest");
+    let oldestResults = await getOldest("any", {});
+    console.timeEnd("full oldest");
+    console.log(oldestResults.length);
+    let now = DateTime.now();
+    for (const user of oldestResults) {
+        console.log(
+            `${Math.floor(now.diff(DateTime.fromSeconds(user.initialTime)).as("days"))}d ago: $${
+                user.latestScore.value
+            } (${user.latestScore.owner.display_name})`
+        );
+        break;
+    }
+
+    console.log(
+        "Users with name:",
+        await findAllUsersWithUsername(cacheManager.campaignManager.campaignLevels, "alex")
+    );
+
+    //await buckets();
+
     /* let userMap: Map<string, Remote.User> = new Map();
     let plusOneCounts: Map<string, number> = new Map();
 
@@ -201,4 +229,8 @@ async function otherStuff() {
     } else {
         console.log("No profile");
     } */
-})();
+
+    await database.close();
+}
+
+main();

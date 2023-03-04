@@ -1,4 +1,4 @@
-import { Leaderboard } from "./LeaderboardInterface";
+import { Leaderboard, LeaderboardEntry } from "./LeaderboardInterface";
 import { CanvasTable, CTConfig, CTData, CTColumn, CTTableDimensions } from "canvas-table";
 import { Canvas, createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
@@ -23,7 +23,7 @@ export const BOARD_DIMENSIONS: [width: number, height: number] = [300, 350];
 
 export interface BoardDetails {
     label?: string;
-    board: Leaderboard;
+    entries: LeaderboardEntry[];
 }
 
 export async function renderBoardCanvas(board: BoardDetails, index: number): Promise<Canvas> {
@@ -37,10 +37,7 @@ export async function renderBoardCanvas(board: BoardDetails, index: number): Pro
     ];
 
     let page_index = Math.floor(index / N_ENTRIES);
-    let chosen_entries = board.board.top1000.slice(
-        page_index * N_ENTRIES,
-        (page_index + 1) * N_ENTRIES
-    );
+    let chosen_entries = board.entries.slice(page_index * N_ENTRIES, (page_index + 1) * N_ENTRIES);
 
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),

@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import { Remote } from "./RemoteLeaderboardInterface";
-import { Leaderboard, LeaderboardEntry } from "./LeaderboardInterface";
+import { Leaderboard, LeaderboardEntry, OldestEntry } from "./LeaderboardInterface";
 
 import { OLDEST_RANK_LIMIT, TIME_FORMAT } from "./Consts";
 
@@ -8,7 +8,6 @@ export function processRemoteLeaderboard(leaderboard: Remote.Leaderboard): Leade
     let result: Leaderboard = {
         top1000: [],
         metadata: leaderboard.metadata,
-        top_history: undefined,
     };
 
     for (let i = 0; i < leaderboard.top1000.length; i++) {
@@ -27,27 +26,16 @@ export function processRemoteLeaderboard(leaderboard: Remote.Leaderboard): Leade
     return result;
 }
 
-export function updateOldestDataAndPurgeCheated(
+export function updateHistoryData(
     oldLeaderboard: Leaderboard,
-    leaderboard: Leaderboard
-): void {
-    let oldHistory = oldLeaderboard.top_history ?? [];
-
-    let oldScoreIds: Set<string> = new Set(oldHistory.map((el) => el.id));
+    leaderboard: Leaderboard,
+    history: OldestEntry[]
+): OldestEntry[] {
+    let oldHistory = history;
 
     let newHistory = [...oldHistory];
 
     let time = 3600 * Math.floor(DateTime.now().toSeconds() / 3600);
-
-    // Push scores above `OLDEST_RANK_LIMIT` that aren't already in the history.
-    for (let i = 0; i < leaderboard.top1000.length; i++) {
-        let entry = leaderboard.top1000[i];
-        if (entry.rank > OLDEST_RANK_LIMIT) break;
-
-        if (!oldScoreIds.has(entry.id)) {
-            newHistory.push({ ...entry, time });
-        }
-    }
 
     // Identify removed scores
     let cheated_users: Set<string> = new Set();
@@ -70,7 +58,31 @@ export function updateOldestDataAndPurgeCheated(
         }
     }
 
-    // Only users that haven't had a cheated score
-    leaderboard.top_history = newHistory.filter((entry) => !cheated_users.has(entry.owner.id));
-    //console.log(leaderboard.top_history);
+    // Mark cheated scores
+    for (const entry of newHistory) {
+        entry.cheated = entry.cheated || cheated_users.has(entry.owner.id);
+    }
+
+    let latest_history_scores: Map<string, OldestEntry> = new Map();
+    for (const entry of oldHistory) {
+        if (!latest_history_scores.has(entry.owner.id))
+            latest_history_scores.set(entry.owner.id, entry);
+    }
+
+    // Push scores below `OLDEST_RANK_LIMIT` that aren't already in the history.
+    for (let i = 0; i < leaderboard.top1000.length; i++) {
+        let entry = leaderboard.top1000[i];
+        if (entry.rank > OLDEST_RANK_LIMIT) break;
+
+        const users_last_score = latest_history_scores.get(entry.owner.id);
+        if (
+            !users_last_score ||
+            entry.value < users_last_score.value ||
+            entry.didBreak !== users_last_score.didBreak
+        ) {
+            newHistory.push({ ...entry, time, cheated: false });
+        }
+    }
+
+    return newHistory;
 }

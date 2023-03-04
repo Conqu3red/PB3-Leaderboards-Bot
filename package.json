@@ -7,11 +7,12 @@
         "agentkeepalive": "^4.2.1",
         "axios": "^0.27.2",
         "binary-parser": "^2.1.0",
-        "canvas": "^2.9.3",
+        "canvas": "^2.11.0",
         "canvas-table": "^0.3.0",
         "discord.js": "^14.3.0",
         "dotenv": "^16.0.1",
         "glob": "^8.0.3",
+        "lmdb": "^2.7.9",
         "luxon": "^2.4.0",
         "reflect-metadata": "^0.1.13",
         "sequelize": "^6.21.4",
@@ -23,6 +24,7 @@
     "scripts": {
         "build": "tsc",
         "run": "ts-node-dev src/Test.ts",
+        "migrate": "ts-node-dev src/utils/Migrate.ts",
         "bot": "ts-node-dev src/bot/Index.ts",
         "test": "ts-mocha --type-check -p tsconfig.json tests/**/*.test.ts"
     },

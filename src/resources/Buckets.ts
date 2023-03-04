@@ -1,5 +1,5 @@
 import { Parser } from "binary-parser";
-import { CdnResource, SimpleResource } from "./CdnResource";
+import { SimpleResource } from "./RemoteResource";
 
 interface CampaignBuckets {
     [key: string]: LevelBuckets | undefined;
@@ -61,7 +61,7 @@ export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
     "collated.json",
     "manifests/leaderboards/buckets/collated.bin",
     {},
-    async (old, remote) => {
+    async (remote) => {
         const buf = Buffer.from(remote);
         const parsed = campaignBucketsParser.parse(buf);
         let levels: CampaignBuckets = {};

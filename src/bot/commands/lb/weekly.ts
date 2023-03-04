@@ -58,13 +58,13 @@ class PagedLeaderboard extends PagedResponder {
         let board = this.data.comparisonBoard
             ? await renderBoardComparison(
                   {
-                      board: this.data.comparisonBoard,
+                      entries: this.data.comparisonBoard.top1000,
                       label: `Week ${this.data.level.info.week - 100}`,
                   },
-                  { board: this.data.board, label: `Week ${this.data.level.info.week}` },
+                  { entries: this.data.board.top1000, label: `Week ${this.data.level.info.week}` },
                   this.page * ENTRIES_PER_PAGE
               )
-            : await renderBoard({ board: this.data.board }, this.page * ENTRIES_PER_PAGE);
+            : await renderBoard({ entries: this.data.board.top1000 }, this.page * ENTRIES_PER_PAGE);
         let shortTime = DateTime.fromMillis(this.data.updateTime).toRelative({ style: "short" });
         let uuid = uuidv4();
 
@@ -158,16 +158,14 @@ export default new Command({
             }
         }
 
-        const boards = await level.get();
-        const board = unbroken ? boards.unbroken : boards.any;
+        const board = level.get(unbroken);
 
         let comparisonBoard: Leaderboard | undefined;
         if (level.info.week > 100) {
             const comparisonLevel = await cacheManager.weeklyManager.getByWeek(
                 level.info.week - 100
             );
-            const cBoards = await comparisonLevel?.get();
-            comparisonBoard = unbroken ? cBoards?.unbroken : cBoards?.any;
+            comparisonBoard = comparisonLevel?.get(unbroken);
         }
 
         const paged = new PagedLeaderboard(client, interaction, {
@@ -175,7 +173,7 @@ export default new Command({
             board,
             comparisonBoard,
             options: { unbroken, userFilter, rank, price },
-            updateTime: await level.lastReloadTime(),
+            updateTime: level.lastReloadTimeMs,
         });
         await paged.start();
     },

@@ -23,21 +23,20 @@ export async function getRecent(
     filters: RecentFilters
 ): Promise<RecentEntry[]> {
     let entries: RecentEntry[] = [];
-    await cacheManager.campaignManager.maybeReload();
 
     for (const level of cacheManager.campaignManager.campaignLevels) {
         if (filters.levelCode && !levelCodeEqual(level.info.code, filters.levelCode)) continue;
 
-        const boards = await level.get();
-        const board = selectLeaderboard(boards, type);
+        const history = level.getHistory(type === "unbroken");
         entries = entries.concat(
-            (
-                board.top_history?.map((entry) => {
+            history
+                .filter(
+                    (entry) =>
+                        !filters.userFilter || matchesUserFilter(filters.userFilter, entry.owner)
+                )
+                .map((entry) => {
                     return { ...entry, compactName: level.compactName() };
                 }) ?? []
-            ).filter(
-                (entry) => !filters.userFilter || matchesUserFilter(filters.userFilter, entry.owner)
-            )
         );
     }
 

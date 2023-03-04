@@ -92,8 +92,7 @@ async function collateBoards<T extends BaseLevel<any>>(
     const startScore = scoreComputer.baseScore(levels);
 
     for (const level of levels) {
-        const boards = await level.get();
-        const board = selectLeaderboard(boards, options.type);
+        const board = level.get(options.type === "unbroken");
         for (const score of board.top1000) {
             let entry = userScores.get(score.owner.id) ?? {
                 user: score.owner,
@@ -129,7 +128,6 @@ export async function globalLeaderboard(options?: GlobalOptions): Promise<Global
 
     if (options.levelCategory !== "weekly") {
         let levelFilter = levelFilters[options.levelCategory];
-        await cacheManager.campaignManager.maybeReload();
         let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
         if (options && options.worldFilter) {
             campaignLevels = campaignLevels.filter(
@@ -141,7 +139,6 @@ export async function globalLeaderboard(options?: GlobalOptions): Promise<Global
         return await collateBoards(campaignLevels, options);
     } else {
         let levelFilter = levelFilters[options.levelCategory];
-        await cacheManager.weeklyManager.maybeReload();
         let weeklyLevels = cacheManager.weeklyManager.weeklyLevels.filter(levelFilter);
         return await collateBoards(weeklyLevels, options);
     }

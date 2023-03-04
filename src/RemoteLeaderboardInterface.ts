@@ -25,3 +25,5 @@ export namespace Remote {
         didBreak: boolean;
     }
 }
+
+export default Remote;
