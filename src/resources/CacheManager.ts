@@ -64,6 +64,7 @@ export class CampaignManager {
 
 export class WeeklyManager {
     static WEEKLY_RELOAD_INTERVAL = 60 * 60 * 1000; // 1 hour
+    static INACTIVE_WEEKLY_RELOAD_INTERVAL = WeeklyManager.WEEKLY_RELOAD_INTERVAL * 16;
     weeklyLevels: WeeklyLevel[] = [];
 
     async populate() {
@@ -71,9 +72,16 @@ export class WeeklyManager {
             await weeklyIndex.reload();
         }
         let levelInfos = await weeklyIndex.get();
+        levelInfos.sort((a, b) => a.week - b.week);
+
+        // fast reload the latest two weekly levels, others don't update as much
         this.weeklyLevels = levelInfos.map(
-            (info) => new WeeklyLevel(info, WeeklyManager.WEEKLY_RELOAD_INTERVAL)
+            (info) => new WeeklyLevel(info, WeeklyManager.INACTIVE_WEEKLY_RELOAD_INTERVAL)
         );
+        for (let i = 1; i <= 2; i++) {
+            let current = this.weeklyLevels.at(-i);
+            if (current) current.reloadIntervalMs = WeeklyManager.WEEKLY_RELOAD_INTERVAL;
+        }
     }
 
     async maybeReload() {
