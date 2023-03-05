@@ -114,7 +114,7 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
                 type: options.type,
                 scoreComputer: "rank",
             })) ?? [],
-            owner?.id
+            owner.id
         ),
         regular: findUser(
             (await globalLeaderboard({
@@ -122,7 +122,7 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
                 type: options.type,
                 scoreComputer: "rank",
             })) ?? [],
-            owner?.id ?? ""
+            owner.id
         ),
         challenge: findUser(
             (await globalLeaderboard({
@@ -130,7 +130,7 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
                 type: options.type,
                 scoreComputer: "rank",
             })) ?? [],
-            owner?.id
+            owner.id
         ),
         weekly: findUser(
             (await globalLeaderboard({
@@ -138,7 +138,7 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
                 type: options.type,
                 scoreComputer: "rank",
             })) ?? [],
-            owner?.id
+            owner.id
         ),
     };
 
