@@ -32,7 +32,8 @@ export async function getRecent(
             history
                 .filter(
                     (entry) =>
-                        !filters.userFilter || matchesUserFilter(filters.userFilter, entry.owner)
+                        !entry.cheated &&
+                        (!filters.userFilter || matchesUserFilter(filters.userFilter, entry.owner))
                 )
                 .map((entry) => {
                     return { ...entry, compactName: level.compactName() };

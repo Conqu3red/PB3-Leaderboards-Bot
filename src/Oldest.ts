@@ -34,6 +34,8 @@ export interface UserStreakTracker {
 
 export function getTopUserStreaks(history: OldestEntry[]): UserStreakTracker[] | null {
     //console.log(board.top_history.length);
+    // exclude cheated:
+    history = history.filter((entry) => !entry.cheated);
     let topHistory: OldestEntry[] = history.sort((a, b) => a.time - b.time);
 
     let timeBrackets: Map<number, OldestEntry[]> = groupBy(topHistory, (obj) => obj.time);
