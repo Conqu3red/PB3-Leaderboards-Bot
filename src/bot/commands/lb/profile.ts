@@ -62,7 +62,7 @@ class PagedProfileLeaderboard extends PagedResponder {
 
     generateGlobalPositionsPart(): string {
         const p = this.data.profile.stats.globalPositions;
-        const keys: (keyof typeof p)[] = ["all", "regular", "challenge", "weekly"];
+        const keys: (keyof typeof p)[] = ["all", "regular", "challenge", "weekly", "bonus"];
 
         const formatPart = (name: string, entry: GlobalEntry | null) =>
             entry ? `${name}: #${entry.rank} (${entry.value})` : ``;
@@ -75,7 +75,8 @@ class PagedProfileLeaderboard extends PagedResponder {
             `Overall: \`${scoreCount["overall"]}\`\n` +
             `Regular: \`${scoreCount["regular"]}\`\n` +
             `Challenge: \`${scoreCount["challenge"]}\`\n` +
-            `Weekly: \`${scoreCount["weekly"]}\``
+            `Weekly: \`${scoreCount["weekly"]}\`\n` +
+            `Bonus: \`${scoreCount["bonus"]}\``
         );
     }
 

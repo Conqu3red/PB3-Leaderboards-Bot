@@ -41,7 +41,8 @@ export default new Command({
                     description:
                         `Overall: \`$${sumsOfBest.overall.toLocaleString("en-US")}\`\n` +
                         `Regular: \`$${sumsOfBest.regular.toLocaleString("en-US")}\`\n` +
-                        `Challenge: \`$${sumsOfBest.challenge.toLocaleString("en-US")}\`\n`,
+                        `Challenge: \`$${sumsOfBest.challenge.toLocaleString("en-US")}\`\n` +
+                        `Bonus: \`$${sumsOfBest.bonus.toLocaleString("en-US")}\`\n`,
                     color: 0x3586ff,
                     author: {
                         name: "PB2 Leaderboards Bot",

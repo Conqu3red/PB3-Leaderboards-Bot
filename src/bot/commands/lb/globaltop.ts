@@ -57,10 +57,9 @@ class PagedGlobalLeaderboard extends PagedResponder {
         let details: string[] = [];
         details.push(`${this.data.options.globalOptions.levelCategory} levels`);
         if (this.data.options.globalOptions.worldFilter) {
+            const world = this.data.options.globalOptions.worldFilter;
             details.push(
-                `World ${this.data.options.globalOptions.worldFilter.world}${
-                    this.data.options.globalOptions.worldFilter.isChallenge ? "c" : ""
-                }`
+                `World ${world.isBonus ? "B" : ""}${world.world}${world.isChallenge ? "c" : ""}`
             );
         }
         if (this.data.options.unbroken) details.push("unbroken");
@@ -103,11 +102,13 @@ class PagedGlobalLeaderboard extends PagedResponder {
 
 function parseWorld(world: string): WorldFilter | null {
     world = world.toLowerCase();
+    let isBonus = world.startsWith("b");
+    if (isBonus) world = world.slice(1);
     let isChallenge = world.endsWith("c");
     if (isChallenge) world = world.slice(0, -1);
     let w = parseInt(world);
     if (isNaN(w)) return null;
-    return { world: w, isChallenge };
+    return { world: w, isChallenge, isBonus };
 }
 
 export default new Command({
@@ -129,7 +130,8 @@ export default new Command({
                     { name: "all", value: "all" },
                     { name: "regular", value: "regular" },
                     { name: "challenge", value: "challenge" },
-                    { name: "weekly", value: "weekly" }
+                    { name: "weekly", value: "weekly" },
+                    { name: "bonus", value: "bonus" }
                 )
                 .setRequired(false)
         )
@@ -164,7 +166,9 @@ export default new Command({
                     { name: "3c", value: "3c" },
                     { name: "4c", value: "4c" },
                     { name: "5c", value: "5c" },
-                    { name: "6c", value: "6c" }
+                    { name: "6c", value: "6c" },
+                    { name: "B1", value: "B1" },
+                    { name: "B2", value: "B2" }
                 )
                 .setRequired(false)
         )

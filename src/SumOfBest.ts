@@ -6,6 +6,7 @@ export interface SumsOfBest {
     overall: number;
     regular: number;
     challenge: number;
+    bonus: number;
 }
 
 export async function sumOfBest(type: LeaderboardType): Promise<SumsOfBest> {
@@ -13,6 +14,7 @@ export async function sumOfBest(type: LeaderboardType): Promise<SumsOfBest> {
         overall: 0,
         regular: 0,
         challenge: 0,
+        bonus: 0,
     };
 
     for (const level of cacheManager.campaignManager.campaignLevels) {
@@ -21,6 +23,8 @@ export async function sumOfBest(type: LeaderboardType): Promise<SumsOfBest> {
             sumsOfBest.overall += board.top1000[0].value;
             if (level.info.code.isChallenge) {
                 sumsOfBest.challenge += board.top1000[0].value;
+            } else if (level.info.code.isBonus) {
+                sumsOfBest.bonus += board.top1000[0].value;
             } else {
                 sumsOfBest.regular += board.top1000[0].value;
             }

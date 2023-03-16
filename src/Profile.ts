@@ -14,6 +14,7 @@ export interface GlobalPositions {
     regular: GlobalEntry | null;
     challenge: GlobalEntry | null;
     weekly: GlobalEntry | null;
+    bonus: GlobalEntry | null;
 }
 
 export interface ScoreCount {
@@ -21,6 +22,7 @@ export interface ScoreCount {
     regular: number;
     challenge: number;
     weekly: number;
+    bonus: number;
 }
 
 export interface ScoreCounts {
@@ -65,7 +67,7 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
     let scoreCounts: ScoreCounts = Object.fromEntries(
         scoreCountThresholds.map((value) => [
             value,
-            { overall: 0, regular: 0, challenge: 0, weekly: 0 },
+            { overall: 0, regular: 0, challenge: 0, weekly: 0, bonus: 0 },
         ])
     );
 
@@ -91,6 +93,7 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
                         if (isCampgainLevel(level)) {
                             scoreCounts[threshold].overall += 1;
                             if (level.info.code.isChallenge) scoreCounts[threshold].challenge += 1;
+                            else if (level.info.code.isBonus) scoreCounts[threshold].bonus += 1;
                             else scoreCounts[threshold].regular += 1;
                         } else {
                             scoreCounts[threshold].weekly += 1;
@@ -135,6 +138,14 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
         weekly: findUser(
             (await globalLeaderboard({
                 levelCategory: "weekly",
+                type: options.type,
+                scoreComputer: "rank",
+            })) ?? [],
+            owner.id
+        ),
+        bonus: findUser(
+            (await globalLeaderboard({
+                levelCategory: "bonus",
                 type: options.type,
                 scoreComputer: "rank",
             })) ?? [],

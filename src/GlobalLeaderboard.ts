@@ -9,12 +9,13 @@ import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
 
-export type LevelCategory = "all" | "regular" | "challenge" | "weekly";
+export type LevelCategory = "all" | "regular" | "challenge" | "weekly" | "bonus";
 
 const levelFilters = {
     all: (level: CampaignLevel) => true,
-    regular: (level: CampaignLevel) => !level.info.code.isChallenge,
+    regular: (level: CampaignLevel) => !level.info.code.isChallenge && !level.info.code.isBonus,
     challenge: (level: CampaignLevel) => level.info.code.isChallenge,
+    bonus: (level: CampaignLevel) => level.info.code.isBonus,
     weekly: (level: WeeklyLevel) => true,
 };
 
@@ -59,6 +60,7 @@ export type GlobalScoreComputerType = "rank" | "moneyspent";
 export interface WorldFilter {
     world: number;
     isChallenge: boolean;
+    isBonus: boolean;
 }
 
 export const globalScoreComputers = {
@@ -133,7 +135,8 @@ export async function globalLeaderboard(options?: GlobalOptions): Promise<Global
             campaignLevels = campaignLevels.filter(
                 (level) =>
                     level.info.code.world === options?.worldFilter?.world &&
-                    level.info.code.isChallenge === options?.worldFilter?.isChallenge
+                    level.info.code.isChallenge === options?.worldFilter?.isChallenge &&
+                    level.info.code.isBonus === options?.worldFilter?.isBonus
             );
         }
         return await collateBoards(campaignLevels, options);

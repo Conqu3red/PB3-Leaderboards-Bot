@@ -21,7 +21,12 @@ export async function loadCampaignLevelInfos(): Promise<CampaignLevelInfo[]> {
     return data.map((info) => {
         return {
             id: info.id,
-            code: parseLevelCode(info.code) ?? { world: 0, level: 0, isChallenge: false },
+            code: parseLevelCode(info.code) ?? {
+                world: 0,
+                level: 0,
+                isChallenge: false,
+                isBonus: false,
+            },
             name: info.name,
             budget: info.budget,
         };
