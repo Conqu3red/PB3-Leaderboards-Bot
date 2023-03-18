@@ -22,10 +22,11 @@
         "uuid": "^8.3.2"
     },
     "scripts": {
-        "build": "tsc",
+        "build": "tsc --build",
+        "bot": "npm run build && node dist/src/bot/Index.js",
+        "bot:dev": "ts-node-dev src/bot/Index.ts",
         "run": "ts-node-dev src/Test.ts",
         "migrate": "ts-node-dev src/utils/Migrate.ts",
-        "bot": "ts-node-dev src/bot/Index.ts",
         "test": "ts-mocha --type-check -p tsconfig.json tests/**/*.test.ts"
     },
     "devDependencies": {

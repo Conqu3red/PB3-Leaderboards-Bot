@@ -130,7 +130,24 @@ async function main() {
     let level = await cacheManager.campaignManager.getByCode("1-1");
 
     if (level) {
-        let board = level.get(false);
+        console.log("OLDEST 1-1");
+        const history = level.getHistory(false);
+        for (const entry of history) {
+            if (entry.cheated) {
+                console.log(
+                    `   ---- CHEATED ${DateTime.fromSeconds(entry.time).toISODate()} #${
+                        entry.rank
+                    } $${entry.value} ${entry.owner.display_name}`
+                );
+            } else {
+                console.log(
+                    `    ${DateTime.fromSeconds(entry.time).toISODate()} #${entry.rank} $${
+                        entry.value
+                    } ${entry.owner.display_name}`
+                );
+            }
+        }
+
         console.time("oldest");
         let t = getTopUserStreaks(level.getHistory(false));
         console.timeEnd("oldest");

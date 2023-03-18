@@ -5,3 +5,4 @@ score-db/
 .env
 *.log
 *.sqlite
+dist
