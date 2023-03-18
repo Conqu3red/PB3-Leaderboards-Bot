@@ -65,8 +65,7 @@ export function updateHistoryData(
 
     let latest_history_scores: Map<string, OldestEntry> = new Map();
     for (const entry of oldHistory) {
-        if (!latest_history_scores.has(entry.owner.id))
-            latest_history_scores.set(entry.owner.id, entry);
+        latest_history_scores.set(entry.owner.id, entry);
     }
 
     // Push scores below `OLDEST_RANK_LIMIT` that aren't already in the history.
