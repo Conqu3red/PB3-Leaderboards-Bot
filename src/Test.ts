@@ -12,9 +12,15 @@ import { DateTime } from "luxon";
 import { renderBoard } from "./TopLeaderboard";
 import { findAllUsersWithUsername } from "./UserFinder";
 import { userMatchesUsername } from "./utils/userFilter";
-import { getAllPercentiles, implyMissingBuckets } from "./Milestones";
+import {
+    getAllPercentiles,
+    implyMissingBuckets,
+    renderHistogram,
+    collectBuckets,
+} from "./Milestones";
 import { Remote } from "./RemoteLeaderboardInterface";
 import database from "./resources/Lmdb";
+import fs from "fs";
 
 async function weeklyTest() {
     console.log(weeklyIndex.lastReloadTimeMs);
@@ -186,6 +192,38 @@ async function main() {
         "Users with name:",
         await findAllUsersWithUsername(cacheManager.campaignManager.campaignLevels, "alex")
     );
+
+    let buckets = await campaignBuckets.get();
+    let level2 = await cacheManager.campaignManager.getByCode("2-5");
+    if (level2) {
+        let levelBuckets = buckets[level2.info.id];
+        if (levelBuckets) {
+            const histogram_buckets = implyMissingBuckets(levelBuckets.any);
+
+            /* for (const b of histogram_buckets) {
+                let f = (b.endRank - b.startRank).toString().padStart(6, " ");
+                let cw = (b.endValue - b.startValue).toString().padStart(6, " ");
+                console.log(
+                    `${f} ${cw} ${b.fd.toFixed(3).padStart(6, " ")} ${"#".repeat(
+                        Math.round(b.fd * 20)
+                    )}`
+                );
+            } */
+
+            const split = collectBuckets(histogram_buckets, 20, level2.info.budget);
+            const max_fd = Math.max(...split.map((s) => s.f / (s.endValue - s.startValue)));
+            for (const x of split) {
+                console.log(
+                    `${(x.endValue - x.startValue).toFixed(3)} ${x.f.toFixed(3)} ${"#".repeat(
+                        Math.round((x.f / (x.endValue - x.startValue) / max_fd) * 20)
+                    )}`
+                );
+            }
+
+            const buf = renderHistogram(split, level2.info.budget);
+            fs.writeFileSync("./test.png", buf);
+        }
+    }
 
     //await buckets();
 
