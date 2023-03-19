@@ -1,5 +1,5 @@
 import { CommandInteraction } from "discord.js";
-import { UserFilter, userMatchesID, userMatchesUsername } from "../../utils/UserFilter";
+import { UserFilter, userMatchesID, userMatchesUsername } from "../../utils/userFilter";
 import User from "../models/User";
 import { EditMessageType } from "../structures/PagedResponder";
 import { error } from "./embeds";
