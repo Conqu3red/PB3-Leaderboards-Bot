@@ -194,7 +194,7 @@ async function main() {
     );
 
     let buckets = await campaignBuckets.get();
-    let level2 = await cacheManager.campaignManager.getByCode("2-5");
+    let level2 = await cacheManager.campaignManager.getByCode("4-15");
     if (level2) {
         let levelBuckets = buckets[level2.info.id];
         if (levelBuckets) {

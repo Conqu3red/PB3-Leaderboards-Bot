@@ -273,16 +273,37 @@ export function collectBuckets(
     return groups;
 }
 
+export async function getHistogramBuckets(
+    level: CampaignLevel,
+    type: LeaderboardType,
+    bucketCount: number
+): Promise<HistogramBucket[] | null> {
+    const allBuckets = await campaignBuckets.get();
+    const levelBuckets = allBuckets[level.info.id];
+    if (!levelBuckets) {
+        return null;
+    }
+    const buckets = implyMissingBuckets(levelBuckets[type]);
+
+    return collectBuckets(buckets, bucketCount, level.info.budget);
+}
+
 export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
+    // TODO: Option to overlay any and unbroken
     const WIDTH = 400;
     const HEIGHT = 400;
+    const GUTTER = 100;
     const BORDER = 20;
     const y_scale = 1;
-    const canvas = createCanvas(WIDTH + 2 * BORDER, HEIGHT + 2 * BORDER);
+    const canvas = createCanvas(WIDTH + 2 * BORDER, HEIGHT + GUTTER + 2 * BORDER);
     const ctx = canvas.getContext("2d");
 
     ctx.fillStyle = "#1e2124";
-    ctx.fillRect(0, 0, WIDTH + 2 * BORDER, HEIGHT + 2 * BORDER);
+    ctx.fillRect(0, 0, WIDTH + 2 * BORDER, HEIGHT + GUTTER + 2 * BORDER);
+
+    const GREY_COLORS = ["#171e22", "#212b31"]; // TODO: better colours
+    const OVERBUDGET_COLORS = ["#D22B2B", "#C41E3A"];
+    const UNDERBUDGET_COLORS = ["#32CD32", "#4CBB17"];
 
     ctx.fillStyle = "rgba(255, 255, 255, 1)";
 
@@ -296,25 +317,80 @@ export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
 
         const x = bucket.startValue - hist[0].startValue;
 
+        // background
+        ctx.fillStyle = GREY_COLORS[i % GREY_COLORS.length];
+        ctx.fillRect(WIDTH * (1 - x / valueRange), BORDER, WIDTH * (cw / valueRange), HEIGHT);
+
+        if (levelBudget) {
+            if (x + cw < levelBudget)
+                ctx.fillStyle = UNDERBUDGET_COLORS[i % UNDERBUDGET_COLORS.length];
+            else ctx.fillStyle = OVERBUDGET_COLORS[i % OVERBUDGET_COLORS.length];
+        } else {
+            ctx.fillStyle = "white"; // FIXME: choose colour
+        }
+
+        // bar
         ctx.fillRect(
-            BORDER + WIDTH * (x / valueRange),
+            WIDTH * (1 - x / valueRange),
             BORDER + HEIGHT * (1 - (y_scale * fd) / max_fd),
             WIDTH * (cw / valueRange),
             HEIGHT * ((y_scale * fd) / max_fd)
         );
     }
-    if (levelBudget) {
-        ctx.strokeStyle = "rgba(255, 0, 0, 1)";
+    /* if (levelBudget) {
+        ctx.strokeStyle = "white";
         ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.setLineDash([5, 5]);
-        ctx.moveTo(BORDER + (WIDTH * (levelBudget - hist[0].startValue)) / valueRange, BORDER);
+        ctx.moveTo(BORDER + WIDTH * (1 - (levelBudget - hist[0].startValue) / valueRange), BORDER);
         ctx.lineTo(
-            BORDER + (WIDTH * (levelBudget - hist[0].startValue)) / valueRange,
-            HEIGHT - BORDER
+            BORDER + WIDTH * (1 - (levelBudget - hist[0].startValue) / valueRange),
+            BORDER + HEIGHT
         );
         ctx.stroke();
+        ctx.closePath();
+    } */
+
+    // draw quartile markers
+    const QUARTILE_MARKER_HEIGHT = 10;
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([]);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+
+    ctx.moveTo(BORDER, BORDER + HEIGHT + 10);
+    ctx.lineTo(BORDER + WIDTH, BORDER + HEIGHT + 10);
+
+    for (let i = 0; i <= 100; i += 25) {
+        const x = (i / 100) * WIDTH;
+        ctx.moveTo(BORDER + x, BORDER + HEIGHT + 10);
+        ctx.lineTo(BORDER + x, BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT);
     }
+    ctx.stroke();
+    ctx.closePath();
+
+    // Budget text high
+    ctx.font = "20px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "white";
+
+    ctx.fillText(
+        `$${Math.round(hist[hist.length - 1].startValue).toLocaleString("en-US")}`,
+        BORDER - 5,
+        BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
+    );
+
+    // Budget text low
+    ctx.font = "20px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillStyle = "white";
+
+    ctx.fillText(
+        `$${Math.round(hist[0].startValue).toLocaleString("en-US")}`,
+        BORDER + WIDTH + 5,
+        BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
+    );
 
     return canvas.toBuffer();
 }
