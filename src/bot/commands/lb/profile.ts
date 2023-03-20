@@ -26,20 +26,6 @@ interface LeaderboardOptions {
     profileOptions: Options;
 }
 
-/* function getBoardIndex(board: GlobalEntry[], options: LeaderboardOptions) {
-    // TODO: search for discord user and search for user ID
-    let user_lower = options.user?.toLowerCase();
-    for (let i = 0; i < board.length; i++) {
-        const entry = board[i];
-
-        if (options.rank && entry.rank === options.rank) return i;
-        if (options.score && entry.value === options.score) return i;
-        if (user_lower && entry.user.display_name.toLocaleLowerCase() == user_lower) return i;
-    }
-
-    return 0;
-} */
-
 interface Data {
     profile: Profile;
     options: LeaderboardOptions;

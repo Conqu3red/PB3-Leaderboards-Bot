@@ -127,7 +127,7 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     ctx.fillStyle = "#1e2124";
     ctx.fillRect(0, 0, WIDTH + 2 * BORDER, HEIGHT + 2 * GUTTER + 2 * BORDER);
 
-    const GREY_COLORS = ["#171e22", "#22282a"]; // TODO: better colours
+    const GREY_COLORS = ["#171e22", "#22282a"];
     const OVERBUDGET_COLORS = ["#D22B2B", "#C41E3A"];
     const UNDERBUDGET_COLORS = ["#32CD32", "#4CBB17"];
     const GENERIC_COLORS = UNDERBUDGET_COLORS;

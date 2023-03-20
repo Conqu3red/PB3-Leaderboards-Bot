@@ -26,7 +26,6 @@ export abstract class RemoteResource<RemoteType> {
     }
 
     async loadFromRemote(): Promise<RemoteType> {
-        // TODO: catch exceptions
         let response = await axios.get<RemoteType>(this.url(), {
             responseType: this.resourceConfig.responseType,
         });
@@ -97,7 +96,6 @@ export class SimpleResource<L, R> extends RemoteResource<R> {
     }
 
     async loadFromFile(): Promise<L> {
-        // TODO: catch error if file doesn't exist
         const filePath = this.file();
         let data: L;
         try {

@@ -20,7 +20,6 @@ export class CampaignManager {
     campaignLevels: CampaignLevel[] = [];
 
     async populate() {
-        // FIXME: population shouldn't overwrite memory cached data
         let levelInfos = await loadCampaignLevelInfos();
         this.campaignLevels = levelInfos.map(
             (info) => new CampaignLevel(info, CampaignManager.CAMPAIGN_LEVEL_RELOAD_INTERVAL)
