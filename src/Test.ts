@@ -17,6 +17,7 @@ import {
     implyMissingBuckets,
     renderHistogram,
     collectBuckets,
+    getPercentile,
 } from "./Milestones";
 import { Remote } from "./RemoteLeaderboardInterface";
 import database from "./resources/Lmdb";
@@ -194,7 +195,7 @@ async function main() {
     );
 
     let buckets = await campaignBuckets.get();
-    let level2 = await cacheManager.campaignManager.getByCode("4-15");
+    let level2 = await cacheManager.campaignManager.getByCode("1-10");
     if (level2) {
         let levelBuckets = buckets[level2.info.id];
         if (levelBuckets) {
@@ -220,7 +221,12 @@ async function main() {
                 );
             }
 
-            const buf = renderHistogram(split, level2.info.budget);
+            const buf = renderHistogram(
+                split,
+                level2.info.budget,
+                26000,
+                getPercentile(26000, histogram_buckets)
+            );
             fs.writeFileSync("./test.png", buf);
         }
     }

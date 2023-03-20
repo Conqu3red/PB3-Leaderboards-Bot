@@ -217,8 +217,6 @@ export function collectBuckets(
     bucketCount: number,
     levelBudget?: number
 ): HistogramBucket[] {
-    const last = hist[hist.length - 1];
-
     // On many levels, a couple of users have scores WAY higher than the max budget
     constrainBucketsToBudget(
         hist,
@@ -251,6 +249,9 @@ export function collectBuckets(
 
         if (included_f > 0) {
             group.f += included_f;
+        } else if (bucket.endValue === bucket.startValue && group.startValue <= bucket.startValue) {
+            // Edge case where bucket has 0 width, include 1 frequency
+            group.f += 1;
         }
 
         if (bucket.endValue <= group.endValue) {
@@ -288,18 +289,23 @@ export async function getHistogramBuckets(
     return collectBuckets(buckets, bucketCount, level.info.budget);
 }
 
-export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
+export function renderHistogram(
+    hist: HistogramBucket[],
+    levelBudget?: number,
+    userScore?: number,
+    userPercentile?: number
+) {
     // TODO: Option to overlay any and unbroken
     const WIDTH = 400;
     const HEIGHT = 400;
     const GUTTER = 100;
     const BORDER = 20;
     const y_scale = 1;
-    const canvas = createCanvas(WIDTH + 2 * BORDER, HEIGHT + GUTTER + 2 * BORDER);
+    const canvas = createCanvas(WIDTH + 2 * BORDER, HEIGHT + 2 * GUTTER + 2 * BORDER);
     const ctx = canvas.getContext("2d");
 
     ctx.fillStyle = "#1e2124";
-    ctx.fillRect(0, 0, WIDTH + 2 * BORDER, HEIGHT + GUTTER + 2 * BORDER);
+    ctx.fillRect(0, 0, WIDTH + 2 * BORDER, HEIGHT + 2 * GUTTER + 2 * BORDER);
 
     const GREY_COLORS = ["#171e22", "#212b31"]; // TODO: better colours
     const OVERBUDGET_COLORS = ["#D22B2B", "#C41E3A"];
@@ -319,7 +325,12 @@ export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
 
         // background
         ctx.fillStyle = GREY_COLORS[i % GREY_COLORS.length];
-        ctx.fillRect(WIDTH * (1 - x / valueRange), BORDER, WIDTH * (cw / valueRange), HEIGHT);
+        ctx.fillRect(
+            WIDTH * (1 - x / valueRange),
+            GUTTER + BORDER,
+            WIDTH * (cw / valueRange),
+            HEIGHT
+        );
 
         if (levelBudget) {
             if (x + cw < levelBudget)
@@ -332,7 +343,7 @@ export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
         // bar
         ctx.fillRect(
             WIDTH * (1 - x / valueRange),
-            BORDER + HEIGHT * (1 - (y_scale * fd) / max_fd),
+            GUTTER + BORDER + HEIGHT * (1 - (y_scale * fd) / max_fd),
             WIDTH * (cw / valueRange),
             HEIGHT * ((y_scale * fd) / max_fd)
         );
@@ -359,13 +370,13 @@ export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
     ctx.lineCap = "round";
     ctx.beginPath();
 
-    ctx.moveTo(BORDER, BORDER + HEIGHT + 10);
-    ctx.lineTo(BORDER + WIDTH, BORDER + HEIGHT + 10);
+    ctx.moveTo(BORDER, GUTTER + BORDER + HEIGHT + 10);
+    ctx.lineTo(BORDER + WIDTH, GUTTER + BORDER + HEIGHT + 10);
 
     for (let i = 0; i <= 100; i += 25) {
         const x = (i / 100) * WIDTH;
-        ctx.moveTo(BORDER + x, BORDER + HEIGHT + 10);
-        ctx.lineTo(BORDER + x, BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT);
+        ctx.moveTo(BORDER + x, GUTTER + BORDER + HEIGHT + 10);
+        ctx.lineTo(BORDER + x, GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT);
     }
     ctx.stroke();
     ctx.closePath();
@@ -376,9 +387,9 @@ export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
     ctx.fillStyle = "white";
 
     ctx.fillText(
-        `$${Math.round(hist[hist.length - 1].startValue).toLocaleString("en-US")}`,
+        `$${Math.round(hist[hist.length - 1].endValue).toLocaleString("en-US")}`,
         BORDER - 5,
-        BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
+        GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
     );
 
     // Budget text low
@@ -389,8 +400,47 @@ export function renderHistogram(hist: HistogramBucket[], levelBudget?: number) {
     ctx.fillText(
         `$${Math.round(hist[0].startValue).toLocaleString("en-US")}`,
         BORDER + WIDTH + 5,
-        BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
+        GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
     );
+
+    if (userScore) {
+        userScore = Math.max(
+            hist[0].startValue,
+            Math.min(hist[hist.length - 1].endValue, userScore)
+        );
+        ctx.strokeStyle = "white";
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(
+            BORDER + WIDTH * (1 - (userScore - hist[0].startValue) / valueRange),
+            GUTTER / 2 + BORDER
+        );
+        ctx.lineTo(
+            BORDER + WIDTH * (1 - (userScore - hist[0].startValue) / valueRange),
+            GUTTER + BORDER + HEIGHT
+        );
+        ctx.stroke();
+        ctx.closePath();
+
+        ctx.font = "20px sans-serif";
+        ctx.textAlign = (userScore - hist[0].startValue) / valueRange > 0.5 ? "left" : "right";
+        ctx.fillStyle = "white";
+
+        const line1 = `$${Math.round(userScore).toLocaleString("en-US")}`;
+        const line2 = `Top ${userPercentile}%`;
+
+        ctx.fillText(
+            line1,
+            BORDER + WIDTH * (1 - (userScore - hist[0].startValue) / valueRange),
+            GUTTER / 2 + BORDER - 20 - 10
+        );
+        ctx.fillText(
+            line2,
+            BORDER + WIDTH * (1 - (userScore - hist[0].startValue) / valueRange),
+            GUTTER / 2 + BORDER - 10
+        );
+    }
 
     return canvas.toBuffer();
 }
