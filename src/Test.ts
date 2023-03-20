@@ -12,13 +12,8 @@ import { DateTime } from "luxon";
 import { renderBoard } from "./TopLeaderboard";
 import { findAllUsersWithUsername } from "./UserFinder";
 import { userMatchesUsername } from "./utils/userFilter";
-import {
-    getAllPercentiles,
-    implyMissingBuckets,
-    renderHistogram,
-    collectBuckets,
-    getPercentile,
-} from "./Milestones";
+import { getAllPercentiles, implyMissingBuckets, getPercentile } from "./Milestones";
+import { renderHistogram, collectBuckets } from "./ScoreDistribution";
 import { Remote } from "./RemoteLeaderboardInterface";
 import database from "./resources/Lmdb";
 import fs from "fs";
@@ -211,7 +206,7 @@ async function main() {
                 );
             } */
 
-            const split = collectBuckets(histogram_buckets, 20, level2.info.budget);
+            const split = collectBuckets(histogram_buckets, 40, level2.info.budget);
             const max_fd = Math.max(...split.map((s) => s.f / (s.endValue - s.startValue)));
             for (const x of split) {
                 console.log(
@@ -221,12 +216,11 @@ async function main() {
                 );
             }
 
-            const buf = renderHistogram(
-                split,
-                level2.info.budget,
-                26000,
-                getPercentile(26000, histogram_buckets)
-            );
+            const buf = renderHistogram(split, {
+                levelBudget: level2.info.budget,
+                userScore: 26000,
+                userPercentile: getPercentile(26000, histogram_buckets),
+            });
             fs.writeFileSync("./test.png", buf);
         }
     }
