@@ -1,6 +1,7 @@
 import { selectLeaderboard } from "./GlobalLeaderboard";
 import { LeaderboardType } from "./LeaderboardInterface";
 import { cacheManager } from "./resources/CacheManager";
+import { WorldFilter, codeMatchesWorldFilters } from "./utils/WorldFilter";
 
 export interface SumsOfBest {
     overall: number;
@@ -9,7 +10,10 @@ export interface SumsOfBest {
     bonus: number;
 }
 
-export async function sumOfBest(type: LeaderboardType): Promise<SumsOfBest> {
+export async function sumOfBest(
+    type: LeaderboardType,
+    worldFilters?: WorldFilter[]
+): Promise<SumsOfBest> {
     let sumsOfBest: SumsOfBest = {
         overall: 0,
         regular: 0,
@@ -18,6 +22,14 @@ export async function sumOfBest(type: LeaderboardType): Promise<SumsOfBest> {
     };
 
     for (const level of cacheManager.campaignManager.campaignLevels) {
+        if (
+            worldFilters &&
+            worldFilters.length > 0 &&
+            !codeMatchesWorldFilters(level.info.code, worldFilters)
+        ) {
+            continue;
+        }
+
         const board = level.get(type === "unbroken");
         if (board.top1000.length > 0) {
             sumsOfBest.overall += board.top1000[0].value;

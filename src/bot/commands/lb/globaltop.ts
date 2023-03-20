@@ -11,11 +11,16 @@ import {
     GlobalOptions,
     LevelCategory,
     renderGlobal,
-    WorldFilter,
 } from "../../../GlobalLeaderboard";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
+import {
+    formatManyWorldFilters,
+    parseManyWorldFilters,
+    parseWorldFilter,
+    WorldFilter,
+} from "../../../utils/WorldFilter";
 
 interface LeaderboardOptions {
     globalOptions: GlobalOptions;
@@ -56,11 +61,10 @@ class PagedGlobalLeaderboard extends PagedResponder {
     getDetails() {
         let details: string[] = [];
         details.push(`${this.data.options.globalOptions.levelCategory} levels`);
-        if (this.data.options.globalOptions.worldFilter) {
-            const world = this.data.options.globalOptions.worldFilter;
-            details.push(
-                `World ${world.isBonus ? "B" : ""}${world.world}${world.isChallenge ? "c" : ""}`
-            );
+        const worldFilters = this.data.options.globalOptions.worldFilters;
+        if (worldFilters && worldFilters.length > 0) {
+            const worlds = formatManyWorldFilters(worldFilters);
+            details.push(`World ${worlds}`);
         }
         if (this.data.options.unbroken) details.push("unbroken");
         return details.length === 0 ? "" : `(${details.join(", ")})`;
@@ -98,17 +102,6 @@ class PagedGlobalLeaderboard extends PagedResponder {
             files: [attachment],
         };
     }
-}
-
-function parseWorld(world: string): WorldFilter | null {
-    world = world.toLowerCase();
-    let isBonus = world.startsWith("b");
-    if (isBonus) world = world.slice(1);
-    let isChallenge = world.endsWith("c");
-    if (isChallenge) world = world.slice(0, -1);
-    let w = parseInt(world);
-    if (isNaN(w)) return null;
-    return { world: w, isChallenge, isBonus };
 }
 
 export default new Command({
@@ -153,23 +146,7 @@ export default new Command({
         .addStringOption((option) =>
             option
                 .setName("world")
-                .setDescription("Display for specific world")
-                .setChoices(
-                    { name: "1", value: "1" },
-                    { name: "2", value: "2" },
-                    { name: "3", value: "3" },
-                    { name: "4", value: "4" },
-                    { name: "5", value: "5" },
-                    { name: "6", value: "6" },
-                    { name: "1c", value: "1c" },
-                    { name: "2c", value: "2c" },
-                    { name: "3c", value: "3c" },
-                    { name: "4c", value: "4c" },
-                    { name: "5c", value: "5c" },
-                    { name: "6c", value: "6c" },
-                    { name: "B1", value: "B1" },
-                    { name: "B2", value: "B2" }
-                )
+                .setDescription("Display for specific world(s): 1 - 6, 1c - 6c, B1, B2")
                 .setRequired(false)
         )
         .toJSON(),
@@ -183,10 +160,10 @@ export default new Command({
         const moneyspent = args.getBoolean("moneyspent", false) ?? false;
         const world = args.getString("world", false);
 
-        let worldFilter: WorldFilter | null = null;
+        let worldFilters: WorldFilter[] = [];
         if (world) {
-            worldFilter = parseWorld(world);
-            if (!worldFilter) {
+            worldFilters = parseManyWorldFilters(world);
+            if (worldFilters.length === 0) {
                 await error(interaction, "Invalid world.");
                 return;
             }
@@ -196,7 +173,7 @@ export default new Command({
         const globalOptions: GlobalOptions = {
             type,
             levelCategory: category,
-            worldFilter: worldFilter ?? undefined,
+            worldFilters: worldFilters,
             scoreComputer: moneyspent ? "moneyspent" : "rank",
         };
 

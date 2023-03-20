@@ -8,6 +8,7 @@ import { WeeklyLevel } from "./resources/WeeklyLevel";
 import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
+import { WorldFilter, codeMatchesWorldFilters } from "./utils/WorldFilter";
 
 export type LevelCategory = "all" | "regular" | "challenge" | "weekly" | "bonus";
 
@@ -57,12 +58,6 @@ export const GlobalScoreByBudget: GlobalScoreComputer<CampaignLevel> = {
 
 export type GlobalScoreComputerType = "rank" | "moneyspent";
 
-export interface WorldFilter {
-    world: number;
-    isChallenge: boolean;
-    isBonus: boolean;
-}
-
 export const globalScoreComputers = {
     rank: GlobalScoreByRank,
     moneyspent: GlobalScoreByBudget,
@@ -71,7 +66,7 @@ export const globalScoreComputers = {
 export interface GlobalOptions {
     type: LeaderboardType;
     levelCategory: LevelCategory;
-    worldFilter?: WorldFilter;
+    worldFilters?: WorldFilter[];
     scoreComputer: GlobalScoreComputerType;
 }
 
@@ -131,12 +126,9 @@ export async function globalLeaderboard(options?: GlobalOptions): Promise<Global
     if (options.levelCategory !== "weekly") {
         let levelFilter = levelFilters[options.levelCategory];
         let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
-        if (options && options.worldFilter) {
-            campaignLevels = campaignLevels.filter(
-                (level) =>
-                    level.info.code.world === options?.worldFilter?.world &&
-                    level.info.code.isChallenge === options?.worldFilter?.isChallenge &&
-                    level.info.code.isBonus === options?.worldFilter?.isBonus
+        if (options && options.worldFilters && options.worldFilters.length > 0) {
+            campaignLevels = campaignLevels.filter((level) =>
+                codeMatchesWorldFilters(level.info.code, options?.worldFilters ?? [])
             );
         }
         return await collateBoards(campaignLevels, options);

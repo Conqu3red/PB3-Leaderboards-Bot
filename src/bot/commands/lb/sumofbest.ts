@@ -15,6 +15,11 @@ import { WeeklyLevel } from "../../../resources/WeeklyLevel";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 import { sumOfBest } from "../../../SumOfBest";
+import {
+    formatManyWorldFilters,
+    parseManyWorldFilters,
+    WorldFilter,
+} from "../../../utils/WorldFilter";
 
 export default new Command({
     command: new SlashCommandBuilder()
@@ -27,17 +32,37 @@ export default new Command({
                 .setDescription("Show leaderboard for scores that didn't break")
                 .setRequired(false)
         )
+        .addStringOption((option) =>
+            option
+                .setName("world")
+                .setDescription("Display for specific world(s): 1 - 6, 1c - 6c, B1, B2")
+                .setRequired(false)
+        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const unbroken = args.getBoolean("unbroken", false) ?? false;
+        const world = args.getString("world", false);
 
-        const sumsOfBest = await sumOfBest(unbroken ? "unbroken" : "any");
+        let worldFilters: WorldFilter[] = [];
+        if (world) {
+            worldFilters = parseManyWorldFilters(world);
+            if (worldFilters.length === 0) {
+                await error(interaction, "Invalid world.");
+                return;
+            }
+        }
+
+        const sumsOfBest = await sumOfBest(unbroken ? "unbroken" : "any", worldFilters);
+
+        const worlds = `World: ${formatManyWorldFilters(worldFilters)}`;
 
         await interaction.editReply({
             embeds: [
                 {
-                    title: `Sum of best${unbroken ? " (unbroken)" : ""}`,
+                    title: `Sum of best${unbroken ? " (unbroken)" : ""} ${
+                        worldFilters.length > 0 ? worlds : ""
+                    }`,
                     description:
                         `Overall: \`$${sumsOfBest.overall.toLocaleString("en-US")}\`\n` +
                         `Regular: \`$${sumsOfBest.regular.toLocaleString("en-US")}\`\n` +
