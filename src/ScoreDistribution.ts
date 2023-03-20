@@ -14,12 +14,12 @@ function constrainBucketsToBudget(buckets: LevelBucket[], levelBudget: number) {
     let shift = levelBudget;
     for (let i = buckets.length - 1; i >= 0; i--) {
         let bucket = buckets[i];
-        if (bucket.endValue > shift) {
+        if (bucket.endValue >= shift) {
             bucket.endValue = shift;
             shift--;
         }
 
-        if (bucket.startValue > shift) {
+        if (bucket.startValue >= shift) {
             bucket.startValue = shift;
             shift--;
         }

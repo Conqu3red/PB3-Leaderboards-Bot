@@ -17,6 +17,7 @@ import { renderHistogram, collectBuckets } from "./ScoreDistribution";
 import { Remote } from "./RemoteLeaderboardInterface";
 import database from "./resources/Lmdb";
 import fs from "fs";
+import { encodeLevelCode } from "./LevelCode";
 
 async function weeklyTest() {
     console.log(weeklyIndex.lastReloadTimeMs);
@@ -221,9 +222,20 @@ async function main() {
                 userScore: 26000,
                 userPercentile: getPercentile(26000, histogram_buckets),
             });
-            fs.writeFileSync("./test.png", buf);
+            fs.writeFileSync(`./distributions/test.png`, buf);
         }
     }
+
+    /* for (const level of cacheManager.campaignManager.campaignLevels) {
+        let levelBuckets = buckets[level.info.id];
+        if (levelBuckets) {
+            const histogram_buckets = implyMissingBuckets(levelBuckets.any);
+            const split = collectBuckets(histogram_buckets, 40, level.info.budget);
+
+            const buf = renderHistogram(split, { levelBudget: level.info.budget });
+            fs.writeFileSync(`./distributions/${encodeLevelCode(level.info.code)}.png`, buf);
+        }
+    } */
 
     //await buckets();
 
