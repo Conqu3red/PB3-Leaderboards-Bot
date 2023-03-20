@@ -75,6 +75,7 @@ export function collectBuckets(
         if (bucket.endValue <= group.endValue) {
             i++;
         }
+
         if (included_f < 0 || bucket.endValue >= group.endValue) {
             // move to next group
             groups.push(group);
