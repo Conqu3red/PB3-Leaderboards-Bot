@@ -222,7 +222,7 @@ async function main() {
                 userScore: 26000,
                 userPercentile: getPercentile(26000, histogram_buckets),
             });
-            fs.writeFileSync(`./distributions/test.png`, buf);
+            fs.writeFileSync(`./test.png`, buf);
         }
     }
 
@@ -230,7 +230,7 @@ async function main() {
         let levelBuckets = buckets[level.info.id];
         if (levelBuckets) {
             const histogram_buckets = implyMissingBuckets(levelBuckets.any);
-            const split = collectBuckets(histogram_buckets, 40, level.info.budget);
+            const split = collectBuckets(histogram_buckets, 100, level.info.budget);
 
             const buf = renderHistogram(split, { levelBudget: level.info.budget });
             fs.writeFileSync(`./distributions/${encodeLevelCode(level.info.code)}.png`, buf);

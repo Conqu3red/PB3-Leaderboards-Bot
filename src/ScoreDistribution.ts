@@ -145,9 +145,9 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
         // background
         ctx.fillStyle = GREY_COLORS[i % GREY_COLORS.length];
         ctx.fillRect(
-            WIDTH * (1 - x / valueRange),
+            BORDER + WIDTH * (1 - x / valueRange),
             GUTTER + BORDER,
-            WIDTH * (cw / valueRange),
+            WIDTH * (-cw / valueRange),
             HEIGHT
         );
 
@@ -161,9 +161,9 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
 
         // bar
         ctx.fillRect(
-            WIDTH * (1 - x / valueRange),
+            BORDER + WIDTH * (1 - x / valueRange),
             GUTTER + BORDER + HEIGHT * (1 - (y_scale * fd) / max_fd),
-            WIDTH * (cw / valueRange),
+            WIDTH * (-cw / valueRange),
             HEIGHT * ((y_scale * fd) / max_fd)
         );
     }
