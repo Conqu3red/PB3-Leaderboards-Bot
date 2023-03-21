@@ -10,7 +10,7 @@ export interface HistogramBucket {
     endValue: number;
 }
 
-function constrainBucketsToBudget(buckets: LevelBucket[], levelBudget: number) {
+export function constrainBucketsToBudget(buckets: LevelBucket[], levelBudget: number) {
     let shift = levelBudget;
     for (let i = buckets.length - 1; i >= 0; i--) {
         let bucket = buckets[i];
@@ -124,6 +124,7 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     const canvas = createCanvas(WIDTH + 2 * BORDER, HEIGHT + 2 * GUTTER + 2 * BORDER);
     const ctx = canvas.getContext("2d");
 
+    ctx.imageSmoothingEnabled = true;
     ctx.fillStyle = "#1e2124";
     ctx.fillRect(0, 0, WIDTH + 2 * BORDER, HEIGHT + 2 * GUTTER + 2 * BORDER);
 
@@ -135,6 +136,8 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     const max_fd = Math.max(...hist.map((p) => p.f / (p.endValue - p.startValue)));
     const valueRange = hist[hist.length - 1].endValue - hist[0].startValue;
 
+    let previous_endPixel = WIDTH;
+
     for (let i = 0; i < hist.length; i++) {
         const bucket = hist[i];
         const cw = bucket.endValue - bucket.startValue;
@@ -142,14 +145,15 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
 
         const x = bucket.startValue - hist[0].startValue;
 
+        const new_startPixel = Math.round(WIDTH * (1 - x / valueRange));
+        const pixel_difference = previous_endPixel - new_startPixel;
+
+        const target_width = Math.round(WIDTH * (-cw / valueRange));
+        const adjusted_width = target_width - pixel_difference;
+
         // background
         ctx.fillStyle = GREY_COLORS[i % GREY_COLORS.length];
-        ctx.fillRect(
-            BORDER + WIDTH * (1 - x / valueRange),
-            GUTTER + BORDER,
-            WIDTH * (-cw / valueRange),
-            HEIGHT
-        );
+        ctx.fillRect(BORDER + previous_endPixel, GUTTER + BORDER, adjusted_width, HEIGHT);
 
         if (config.levelBudget) {
             if (x + cw / 2 < config.levelBudget)
@@ -161,11 +165,13 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
 
         // bar
         ctx.fillRect(
-            BORDER + WIDTH * (1 - x / valueRange),
+            BORDER + previous_endPixel,
             GUTTER + BORDER + HEIGHT * (1 - (y_scale * fd) / max_fd),
-            WIDTH * (-cw / valueRange),
+            adjusted_width,
             HEIGHT * ((y_scale * fd) / max_fd)
         );
+
+        previous_endPixel += adjusted_width;
     }
     /* if (levelBudget) {
         ctx.strokeStyle = "white";
