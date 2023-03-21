@@ -49,7 +49,7 @@ export default new Command({
                 .setDescription("Number of bars in the emitted chart (default: 40)")
                 .setRequired(false)
                 .setMinValue(20)
-                .setMaxValue(100)
+                .setMaxValue(200)
         )
         .addBooleanOption((option) =>
             option
