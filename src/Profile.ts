@@ -187,7 +187,7 @@ export async function renderProfileLevelScores(
     const data: CTData = chosen_entries.map((entry) => [
         entry.compactName,
         entry.score?.rank?.toString() ?? "",
-        entry.score ? "$" + entry.score?.value?.toLocaleString("en-US") : "",
+        entry.score ? "$" + entry.score?.score?.toLocaleString("en-US") : "",
         entry.score?.didBreak ? "✱" : "",
     ]);
 

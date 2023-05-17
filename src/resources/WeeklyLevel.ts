@@ -1,7 +1,5 @@
-import { LevelLeaderboards, WeeklyLevelInfo } from "../LeaderboardInterface";
+import { WeeklyLevelInfo } from "../LeaderboardInterface";
 import { BaseLevel } from "./Level";
-import { Remote } from "../RemoteLeaderboardInterface";
-import { processRemoteLeaderboard } from "../LeaderboardProcessors";
 import database from "./Lmdb";
 
 export class WeeklyLevel extends BaseLevel<WeeklyLevelInfo> {
@@ -9,8 +7,8 @@ export class WeeklyLevel extends BaseLevel<WeeklyLevelInfo> {
         return `WC:${this.info.id}`;
     }
 
-    async process(remote: Remote.LevelLeaderboards) {
-        const any = this.get(false);
+    //async process(remote: LevelLeaderboards) {
+    /* const any = this.get(false);
         const anyNew = processRemoteLeaderboard(remote.any);
         const unbroken = this.get(true);
         const unbrokenNew = processRemoteLeaderboard(remote.unbroken);
@@ -18,8 +16,8 @@ export class WeeklyLevel extends BaseLevel<WeeklyLevelInfo> {
         await database.transaction(async () => {
             await this.set(anyNew, false);
             await this.set(unbrokenNew, true);
-        });
-    }
+        }); */
+    //}
 
     remotePath(): string {
         return `manifests/leaderboards/challenges/scores/${this.info.id}.json`;

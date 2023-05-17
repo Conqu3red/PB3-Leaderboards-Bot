@@ -42,7 +42,7 @@ export async function renderBoardCanvas(board: BoardDetails, index: number): Pro
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
         entry.owner.display_name,
-        `$${entry.value.toLocaleString("en-US")}`,
+        `$${entry.score.toLocaleString("en-US")}`,
         entry.didBreak ? "✱" : "",
     ]);
 

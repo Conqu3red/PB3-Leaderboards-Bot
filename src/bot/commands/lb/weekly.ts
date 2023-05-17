@@ -27,7 +27,7 @@ function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
         const entry = board.top1000[i];
 
         if (options.rank && entry.rank >= options.rank) return i;
-        if (options.price && entry.value >= options.price) return i;
+        if (options.price && entry.score >= options.price) return i;
         if (options.userFilter && matchesUserFilter(options.userFilter, entry.owner)) return i;
     }
 
@@ -77,7 +77,7 @@ class PagedLeaderboard extends PagedResponder {
                     }`,
                     description: `Showing top ${this.data.board.top1000.length.toLocaleString(
                         "en-US"
-                    )} entries out of ${this.data.board.metadata.uniqueRanksCount.toLocaleString(
+                    )} entries out of ${this.data.board.metadata.leaderboard_entry_count.toLocaleString(
                         "en-US"
                     )}.`,
                     color: 0x3586ff,

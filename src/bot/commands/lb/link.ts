@@ -114,7 +114,7 @@ export default new Command({
                                         label: `${user.user.display_name} (ID: ${user.user.id})`,
                                         description: `Score on ${user.score.compactName}: #${
                                             user.score.score.rank
-                                        }, $${user.score.score.value.toLocaleString("en-US")}`,
+                                        }, $${user.score.score.score.toLocaleString("en-US")}`,
                                         value: user.user.id,
                                     };
                                 })

@@ -2,6 +2,9 @@ declare global {
     namespace NodeJS {
         interface ProcessEnv {
             botToken: string;
+            STEAM_WEBAPI_KEY: string;
+            STEAM_USERNAME: string;
+            STEAM_PASSWORD: string;
         }
     }
 }

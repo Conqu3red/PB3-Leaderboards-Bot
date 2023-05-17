@@ -140,12 +140,12 @@ async function main() {
                 console.log(
                     `   ---- CHEATED ${DateTime.fromSeconds(entry.time).toISODate()} #${
                         entry.rank
-                    } $${entry.value} ${entry.owner.display_name}`
+                    } $${entry.score} ${entry.owner.display_name}`
                 );
             } else {
                 console.log(
                     `    ${DateTime.fromSeconds(entry.time).toISODate()} #${entry.rank} $${
-                        entry.value
+                        entry.score
                     } ${entry.owner.display_name}`
                 );
             }
@@ -161,7 +161,7 @@ async function main() {
                 console.log(
                     `${Math.floor(
                         now.diff(DateTime.fromSeconds(user.initialTime)).as("days")
-                    )}d ago: $${user.latestScore.value} (${user.latestScore.owner.display_name})`
+                    )}d ago: $${user.latestScore.score} (${user.latestScore.owner.display_name})`
                 );
             }
         } else {
@@ -179,7 +179,7 @@ async function main() {
     for (const user of oldestResults) {
         console.log(
             `${Math.floor(now.diff(DateTime.fromSeconds(user.initialTime)).as("days"))}d ago: $${
-                user.latestScore.value
+                user.latestScore.score
             } (${user.latestScore.owner.display_name})`
         );
         break;

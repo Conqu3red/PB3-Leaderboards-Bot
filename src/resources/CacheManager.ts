@@ -6,24 +6,23 @@ import { CampaignLevel } from "./CampaignLevel";
 import { LevelCode, levelCodeEqual, parseLevelCode } from "../LevelCode";
 import { campaignBuckets } from "./Buckets";
 import { asyncSetTimeout } from "../utils/asyncTimeout";
-
-export async function bulkMaybeReload(resources: RemoteResource<any>[]) {
-    return Promise.all(
-        resources.map(async (resource) => {
-            if (await resource.needsReload()) await resource.reload();
-        })
-    );
-}
+import { steamUser } from "../bot/Index";
+import { Leaderboard, LeaderboardType } from "../LeaderboardInterface";
+import database from "./Lmdb";
+import RateLimit from "../utils/RateLimit";
+import SteamUser from "steam-user";
+import { ClientLBSGetLBEntriesResponse } from "../Steam";
+import { updateHistoryData } from "../LeaderboardProcessors";
 
 export class CampaignManager {
     static CAMPAIGN_LEVEL_RELOAD_INTERVAL = 8 * 60 * 60 * 1000; // 8 hours
+    static RATELIMIT_MS = 1000;
+    static ID_RELOAD_INTERVAL = 80 * 60 * 60 * 1000; // 80 hours
     campaignLevels: CampaignLevel[] = [];
 
     async populate() {
         let levelInfos = await loadCampaignLevelInfos();
-        this.campaignLevels = levelInfos.map(
-            (info) => new CampaignLevel(info, CampaignManager.CAMPAIGN_LEVEL_RELOAD_INTERVAL)
-        );
+        this.campaignLevels = levelInfos.map((info) => new CampaignLevel(info));
     }
 
     async maybeReload() {
@@ -34,7 +33,13 @@ export class CampaignManager {
             reloadRequired = true;
         }
 
-        await bulkMaybeReload(this.campaignLevels);
+        // Steam rate-limit of 1 per second
+
+        for (const level of this.campaignLevels) {
+            if (level.needsReload()) {
+                await this.reload(level);
+            }
+        }
     }
 
     async timeToNextReload(): Promise<number> {
@@ -59,75 +64,127 @@ export class CampaignManager {
         );
         return level ?? null;
     }
-}
 
-export class WeeklyManager {
-    static WEEKLY_RELOAD_INTERVAL = 60 * 60 * 1000; // 1 hour
-    static INACTIVE_WEEKLY_RELOAD_INTERVAL = WeeklyManager.WEEKLY_RELOAD_INTERVAL * 16;
-    weeklyLevels: WeeklyLevel[] = [];
-
-    async populate() {
-        if (await weeklyIndex.needsReload()) {
-            await weeklyIndex.reload();
+    async getLeaderboardId(
+        level: CampaignLevel,
+        leaderboardType: LeaderboardType
+    ): Promise<number> {
+        const boardName = level.getLeaderboardName(leaderboardType);
+        let id: number | undefined = database.get("id:" + boardName);
+        if (!id) {
+            console.error(
+                `[critical] leaderboard id missing: ${level.compactName()} ${
+                    level.info.id
+                } ${leaderboardType}`
+            );
+            const board = await steamUser.GetLeaderboard(boardName);
+            // FIXME: leaderboard IDs need to be cached and rechecked occasionally?
+            id = board.leaderboard_id;
+            await database.put("id:" + boardName, id);
         }
-        let levelInfos = await weeklyIndex.get();
-        levelInfos.sort((a, b) => a.week - b.week);
+        return id;
+    }
 
-        // fast reload the latest two weekly levels, others don't update as much
-        this.weeklyLevels = levelInfos.map(
-            (info) => new WeeklyLevel(info, WeeklyManager.INACTIVE_WEEKLY_RELOAD_INTERVAL)
-        );
-        for (let i = 1; i <= 2; i++) {
-            let current = this.weeklyLevels.at(-i);
-            if (current) current.reloadIntervalMs = WeeklyManager.WEEKLY_RELOAD_INTERVAL;
+    async reloadId(level: CampaignLevel, leaderboardType: LeaderboardType) {
+        const boardName = level.getLeaderboardName(leaderboardType);
+        const board = await steamUser.GetLeaderboard(boardName);
+        await database.put("id:" + boardName, board.leaderboard_id);
+    }
+
+    static convertSteamData(entries: ClientLBSGetLBEntriesResponse): Leaderboard {
+        return {
+            top1000: entries.entries.map((entry) => ({
+                steam_id_user: entry.steam_id_user,
+                score: entry.score,
+                didBreak: entry.details != null && entry.details.readUint32LE(0) != 0,
+                rank: entry.global_rank,
+            })),
+            leaderboard_entry_count: entries.leaderboard_entry_count,
+        };
+    }
+
+    async reloadType(
+        level: CampaignLevel,
+        leaderboardType: LeaderboardType,
+        reloadId: boolean,
+        rateLimit: RateLimit
+    ) {
+        if (reloadId) {
+            rateLimit.begin();
+            await this.reloadId(level, leaderboardType);
+            await rateLimit.waitRest();
         }
-    }
+        const id = await this.getLeaderboardId(level, leaderboardType);
 
-    async maybeReload() {
-        let reloadRequired =
-            this.weeklyLevels.length == 0 || this.weeklyLevels.some((level) => level.needsReload());
-        if (reloadRequired) await this.populate();
-        await bulkMaybeReload(this.weeklyLevels);
-    }
+        const oldBoard = level.get();
 
-    async timeToNextReload(): Promise<number> {
-        return Math.min(
-            ...(await Promise.all(this.weeklyLevels.map((level) => level.timeUntilNextReload())))
+        const board = await steamUser.GetLeaderboardEntries(
+            id,
+            0,
+            1000,
+            SteamUser.ELeaderboardDataRequest.Global
         );
+
+        const newBoard = CampaignManager.convertSteamData(board);
+
+        console.log(`reload ${level.compactName()}:${leaderboardType}`);
+
+        await database.transaction(async () => {
+            // TODO: change interfaces to match steam, as ID cache
+            await level.set(newBoard, leaderboardType);
+            await level.setHistory(
+                updateHistoryData(oldBoard, newBoard, level.getHistory(leaderboardType))
+            );
+        });
     }
 
-    async getLatest(): Promise<WeeklyLevel | null> {
-        await this.maybeReload();
-        let week = Math.max(...this.weeklyLevels.map((level) => level.info.week));
-        return this.getByWeek(week);
-    }
+    async reload(level: CampaignLevel) {
+        const rateLimit = new RateLimit(CampaignManager.RATELIMIT_MS);
 
-    async getByWeek(week: number): Promise<WeeklyLevel | null> {
-        await this.maybeReload();
-        let level = this.weeklyLevels.find((level) => level.info.week === week);
-        return level ?? null;
+        const last_id_reload: number = database.get(level.lmdbKey() + ":idt") ?? 0;
+        let reload_ids = false;
+
+        if (Date.now() - last_id_reload >= CampaignManager.ID_RELOAD_INTERVAL) {
+            await database.put(level.lmdbKey() + ":idt", Date.now());
+            reload_ids = true;
+        }
+
+        this.reloadType(level, "any", reload_ids, rateLimit);
+        this.reloadType(level, "unbroken", reload_ids, rateLimit);
+        this.reloadType(level, "stress", reload_ids, rateLimit);
+        /* const any = this.get(false);
+        const anyNew = processRemoteLeaderboard(remote.any);
+        const unbroken = this.get(true);
+        const unbrokenNew = processRemoteLeaderboard(remote.unbroken);
+
+        await database.transaction(async () => {
+            await this.set(anyNew, false);
+            await this.set(unbrokenNew, true);
+
+            await this.setHistory(updateHistoryData(any, anyNew, this.getHistory(false)), false);
+            await this.setHistory(
+                updateHistoryData(unbroken, unbrokenNew, this.getHistory(true)),
+                true
+            );
+        }); */
     }
 }
 
 export class CacheManager {
     campaignManager = new CampaignManager();
-    weeklyManager = new WeeklyManager();
     // TODO: attach manager for bin collated file?
 
     async maybeReload() {
         await this.campaignManager.maybeReload();
-        await this.weeklyManager.maybeReload();
         if (await campaignBuckets.needsReload()) await campaignBuckets.reload();
     }
 
     async backgroundUpdate() {
         await this.campaignManager.populate();
-        await this.weeklyManager.populate();
 
         while (true) {
             let nextReloadTime = Math.min(
                 await this.campaignManager.timeToNextReload(),
-                await this.weeklyManager.timeToNextReload(),
                 await campaignBuckets.timeUntilNextReload()
             );
 

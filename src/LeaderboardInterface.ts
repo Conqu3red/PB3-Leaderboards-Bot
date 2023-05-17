@@ -1,13 +1,11 @@
-import { Remote } from "./RemoteLeaderboardInterface";
-
-export interface LevelLeaderboards {
+/* export interface LevelLeaderboards {
     any: Leaderboard;
     unbroken: Leaderboard;
-}
+} */
 
 export interface Leaderboard {
     top1000: LeaderboardEntry[];
-    metadata: Remote.LeaderboardMetadata;
+    leaderboard_entry_count: number;
 }
 
 /* export interface Leaderboard {
@@ -16,8 +14,11 @@ export interface Leaderboard {
     metadata: Remote.LeaderboardMetadata;
 } */
 
-export interface LeaderboardEntry extends Remote.LeaderboardEntry {
+export interface LeaderboardEntry {
+    steam_id_user: string;
+    score: number;
     rank: number;
+    didBreak: boolean;
 }
 
 export interface OldestEntry extends LeaderboardEntry {
@@ -33,4 +34,4 @@ export interface WeeklyLevelInfo {
     preview: string;
 }
 
-export type LeaderboardType = "any" | "unbroken";
+export type LeaderboardType = "any" | "unbroken" | "stress";

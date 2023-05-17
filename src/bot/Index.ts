@@ -4,9 +4,11 @@ import { configureHttp } from "../resources/ConfigureHttpAgents";
 import { GatewayIntentBits } from "discord.js";
 import { sequelize } from "./Sequelize";
 import User from "./models/User";
+import SteamWebAPI from "@doctormckay/steam-webapi";
+import { ExpandedSteamUser } from "../Steam";
 
 require("dotenv").config();
-const { botToken } = process.env;
+const { botToken, STEAM_WEBAPI_KEY, STEAM_USERNAME, STEAM_PASSWORD } = process.env;
 configureHttp();
 
 if (!botToken) {
@@ -31,4 +33,20 @@ cacheManager.backgroundUpdate();
     await a.save();
 })(); */
 
-bot.start();
+export const steamAPI = new SteamWebAPI(STEAM_WEBAPI_KEY);
+
+export const steamUser = new ExpandedSteamUser({
+    dataDirectory: ".",
+});
+
+steamUser.logOn({
+    accountName: STEAM_USERNAME,
+    password: STEAM_PASSWORD,
+});
+
+steamUser.on("loggedOn", async (details) => {
+    console.log("Steam user logged in!");
+    console.log(details);
+
+    bot.start();
+});

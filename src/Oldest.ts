@@ -44,7 +44,7 @@ export function getTopUserStreaks(history: OldestEntry[]): UserStreakTracker[] |
     let lowestScore = Infinity;
 
     for (const [time, scores] of timeBrackets) {
-        let newTop = Math.min(...scores.map((score) => score.value));
+        let newTop = Math.min(...scores.map((score) => score.score));
         //console.log(newTop);
 
         // no improvements/ties
@@ -54,7 +54,7 @@ export function getTopUserStreaks(history: OldestEntry[]): UserStreakTracker[] |
 
         // add new improvements/ties
         for (const score of scores) {
-            if (score.value > lowestScore) continue;
+            if (score.score > lowestScore) continue;
 
             let user = topUsers.get(score.owner.id);
             if (user) {
@@ -73,7 +73,7 @@ export function getTopUserStreaks(history: OldestEntry[]): UserStreakTracker[] |
 
         // remove top users that no longer meet the top score
         for (const [id, user] of topUsers) {
-            if (user.latestScore.value > lowestScore) {
+            if (user.latestScore.score > lowestScore) {
                 topUsers.delete(id);
             }
         }

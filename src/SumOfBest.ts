@@ -32,13 +32,13 @@ export async function sumOfBest(
 
         const board = level.get(type === "unbroken");
         if (board.top1000.length > 0) {
-            sumsOfBest.overall += board.top1000[0].value;
+            sumsOfBest.overall += board.top1000[0].score;
             if (level.info.code.isChallenge) {
-                sumsOfBest.challenge += board.top1000[0].value;
+                sumsOfBest.challenge += board.top1000[0].score;
             } else if (level.info.code.isBonus) {
-                sumsOfBest.bonus += board.top1000[0].value;
+                sumsOfBest.bonus += board.top1000[0].score;
             } else {
-                sumsOfBest.regular += board.top1000[0].value;
+                sumsOfBest.regular += board.top1000[0].score;
             }
         }
     }

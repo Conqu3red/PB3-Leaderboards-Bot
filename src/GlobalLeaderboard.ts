@@ -52,7 +52,7 @@ export const GlobalScoreByBudget: GlobalScoreComputer<CampaignLevel> = {
         return levels.reduce((a, b) => a + b.info.budget, 0);
     },
     getLevelSubtractScore(level, score, options) {
-        return level.info.budget - score.value;
+        return level.info.budget - score.score;
     },
 };
 

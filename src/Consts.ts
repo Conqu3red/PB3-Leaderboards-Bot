@@ -10,3 +10,5 @@ export const TIME_FORMAT = "dd/MM/yy-HH:mm";
 export const DATA_DIR = "data";
 
 export const N_ENTRIES = 12;
+
+export const APP_ID = 1850160;
