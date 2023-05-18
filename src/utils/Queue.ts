@@ -69,7 +69,7 @@ export default class Queue<T> {
     }
 
     shift() {
-        if (length === 0) {
+        if (this.internalLength === 0) {
             return null;
         }
         let tmp = this.container[this.head];
@@ -78,14 +78,17 @@ export default class Queue<T> {
         if (this.head == this.currentSize) {
             this.head = 0;
         }
-        if (length == this.currentSize / 4 && length > this.initialCapacity) {
+        if (
+            this.internalLength == this.currentSize / 4 &&
+            this.internalLength > this.initialCapacity
+        ) {
             this.shrink();
         }
         return tmp;
     }
 
     front() {
-        if (length === 0) {
+        if (this.internalLength === 0) {
             return null;
         }
         return this.container[this.head];

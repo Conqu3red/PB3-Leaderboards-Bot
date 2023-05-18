@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import { Leaderboard, LeaderboardEntry, OldestEntry } from "./LeaderboardInterface";
 
 import { OLDEST_RANK_LIMIT, TIME_FORMAT } from "./Consts";
+import SteamUsernames from "./resources/SteamUsernameHandler";
 
 export function updateHistoryData(
     oldLeaderboard: Leaderboard,
@@ -29,9 +30,9 @@ export function updateHistoryData(
         // User has been removed from leaderboard OR their score increased, indicating a score removal
         if (!new_score || new_score > old_score) {
             console.log(
-                `Detected removed score of $${old_score} by ${
-                    /*entry.owner.display_name*/ "TODO: displayname"
-                } (User ID: ${entry.steam_id_user})`
+                `Detected removed score of $${old_score} by ${SteamUsernames.get(
+                    entry.steam_id_user
+                )} (User ID: ${entry.steam_id_user})`
             );
             cheated_users.add(entry.steam_id_user);
         }

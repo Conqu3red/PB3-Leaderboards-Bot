@@ -5,7 +5,7 @@ import * as Local from "../LeaderboardInterface";
 import database from "./Lmdb";
 import { updateHistoryData } from "../LeaderboardProcessors";
 import { CampaignManager, cacheManager } from "./CacheManager";
-import { steamUser } from "../bot/Index";
+import { steamUser } from "./SteamUser";
 import SteamUser from "steam-user";
 import RateLimit from "../utils/RateLimit";
 
@@ -38,6 +38,6 @@ export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
         let postfix = "";
         if (leaderboardType === "unbroken") postfix = "_unbreaking";
         if (leaderboardType === "stress") postfix = "_stress";
-        return `${this.info.id}`;
+        return `${this.info.id}${postfix}`;
     }
 }

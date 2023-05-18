@@ -8,8 +8,8 @@ export const LEVEL_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT)-(\d+)/i;
 export function parseLevelCode(code: string): LevelCode | null {
     let match = code.match(LEVEL_REGEX);
     if (!match) return null;
-    let world = match[2];
-    let level = parseInt(match[3]);
+    let world = match[1];
+    let level = parseInt(match[2]);
 
     if (isNaN(level)) return null;
 

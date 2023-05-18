@@ -6,13 +6,14 @@ import { CampaignLevel } from "./CampaignLevel";
 import { LevelCode, levelCodeEqual, parseLevelCode } from "../LevelCode";
 import { campaignBuckets } from "./Buckets";
 import { asyncSetTimeout } from "../utils/asyncTimeout";
-import { steamUser } from "../bot/Index";
 import { Leaderboard, LeaderboardType } from "../LeaderboardInterface";
-import database from "./Lmdb";
+import database, { userDB } from "./Lmdb";
 import RateLimit from "../utils/RateLimit";
 import SteamUser from "steam-user";
 import { ClientLBSGetLBEntriesResponse } from "../Steam";
 import { updateHistoryData } from "../LeaderboardProcessors";
+import SteamUsernames, { PriorityLevel } from "./SteamUsernameHandler";
+import { steamUser } from "./SteamUser";
 
 export class CampaignManager {
     static CAMPAIGN_LEVEL_RELOAD_INTERVAL = 8 * 60 * 60 * 1000; // 8 hours
@@ -73,9 +74,7 @@ export class CampaignManager {
         let id: number | undefined = database.get("id:" + boardName);
         if (!id) {
             console.error(
-                `[critical] leaderboard id missing: ${level.compactName()} ${
-                    level.info.id
-                } ${leaderboardType}`
+                `[CacheManager] CRITICAL leaderboard id missing: ${level.compactName()} ${boardName} ${leaderboardType}`
             );
             const board = await steamUser.GetLeaderboard(boardName);
             // FIXME: leaderboard IDs need to be cached and rechecked occasionally?
@@ -89,6 +88,7 @@ export class CampaignManager {
         const boardName = level.getLeaderboardName(leaderboardType);
         const board = await steamUser.GetLeaderboard(boardName);
         await database.put("id:" + boardName, board.leaderboard_id);
+        console.log(`[CacheManager] reloaded board id ${boardName} ${board.leaderboard_id}`);
     }
 
     static convertSteamData(entries: ClientLBSGetLBEntriesResponse): Leaderboard {
@@ -116,8 +116,9 @@ export class CampaignManager {
         }
         const id = await this.getLeaderboardId(level, leaderboardType);
 
-        const oldBoard = level.get();
+        const oldBoard = level.get(leaderboardType);
 
+        rateLimit.begin();
         const board = await steamUser.GetLeaderboardEntries(
             id,
             0,
@@ -125,33 +126,51 @@ export class CampaignManager {
             SteamUser.ELeaderboardDataRequest.Global
         );
 
-        const newBoard = CampaignManager.convertSteamData(board);
+        await rateLimit.waitRest();
 
-        console.log(`reload ${level.compactName()}:${leaderboardType}`);
+        const newBoard = CampaignManager.convertSteamData(board);
 
         await database.transaction(async () => {
             // TODO: change interfaces to match steam, as ID cache
             await level.set(newBoard, leaderboardType);
             await level.setHistory(
-                updateHistoryData(oldBoard, newBoard, level.getHistory(leaderboardType))
+                updateHistoryData(oldBoard, newBoard, level.getHistory(leaderboardType)),
+                leaderboardType
             );
         });
+
+        console.log(`[CacheManager] Reloaded ${level.compactName()}:${leaderboardType}`);
+
+        for (const score of newBoard.top1000) {
+            if (score.rank <= 25)
+                SteamUsernames.enqueueId(score.steam_id_user, PriorityLevel.TOP25);
+            else if (score.rank <= 100)
+                SteamUsernames.enqueueId(score.steam_id_user, PriorityLevel.TOP100);
+            else if (score.rank <= 250)
+                SteamUsernames.enqueueId(score.steam_id_user, PriorityLevel.TOP250);
+            else SteamUsernames.enqueueId(score.steam_id_user, PriorityLevel.TOP1000);
+        }
     }
 
     async reload(level: CampaignLevel) {
         const rateLimit = new RateLimit(CampaignManager.RATELIMIT_MS);
 
-        const last_id_reload: number = database.get(level.lmdbKey() + ":idt") ?? 0;
+        const last_id_reload: number = database.get("idt:" + level.lmdbKey()) ?? 0;
         let reload_ids = false;
 
         if (Date.now() - last_id_reload >= CampaignManager.ID_RELOAD_INTERVAL) {
-            await database.put(level.lmdbKey() + ":idt", Date.now());
             reload_ids = true;
         }
 
-        this.reloadType(level, "any", reload_ids, rateLimit);
-        this.reloadType(level, "unbroken", reload_ids, rateLimit);
-        this.reloadType(level, "stress", reload_ids, rateLimit);
+        level.lastReloadTimeMs = Date.now();
+
+        await this.reloadType(level, "any", reload_ids, rateLimit);
+        await this.reloadType(level, "unbroken", reload_ids, rateLimit);
+        await this.reloadType(level, "stress", reload_ids, rateLimit);
+
+        if (reload_ids) {
+            await database.put("idt:" + level.lmdbKey(), Date.now());
+        }
         /* const any = this.get(false);
         const anyNew = processRemoteLeaderboard(remote.any);
         const unbroken = this.get(true);
@@ -172,15 +191,32 @@ export class CampaignManager {
 
 export class CacheManager {
     campaignManager = new CampaignManager();
+    steamRateLimit = new RateLimit(CampaignManager.RATELIMIT_MS);
     // TODO: attach manager for bin collated file?
 
     async maybeReload() {
         await this.campaignManager.maybeReload();
-        if (await campaignBuckets.needsReload()) await campaignBuckets.reload();
+        if (campaignBuckets.needsReload()) await campaignBuckets.reload();
+    }
+
+    async nameUpdate() {
+        while (true) {
+            this.steamRateLimit.begin();
+            const didUpdate = await SteamUsernames.reload();
+            await this.steamRateLimit.waitRest();
+
+            // check background update
+            const last_refresh: number | undefined = userDB.get("_refresh");
+            if (!last_refresh || Date.now() - last_refresh > SteamUsernames.ID_RELOAD_INTERVAL) {
+                SteamUsernames.pushStale();
+                await userDB.put("_refresh", Date.now());
+            }
+        }
     }
 
     async backgroundUpdate() {
         await this.campaignManager.populate();
+        SteamUsernames.initQueues();
 
         while (true) {
             let nextReloadTime = Math.min(

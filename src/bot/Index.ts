@@ -6,6 +6,7 @@ import { sequelize } from "./Sequelize";
 import User from "./models/User";
 import SteamWebAPI from "@doctormckay/steam-webapi";
 import { ExpandedSteamUser } from "../Steam";
+import { steamAPI, steamUser } from "../resources/SteamUser";
 
 require("dotenv").config();
 const { botToken, STEAM_WEBAPI_KEY, STEAM_USERNAME, STEAM_PASSWORD } = process.env;
@@ -33,11 +34,7 @@ cacheManager.backgroundUpdate();
     await a.save();
 })(); */
 
-export const steamAPI = new SteamWebAPI(STEAM_WEBAPI_KEY);
-
-export const steamUser = new ExpandedSteamUser({
-    dataDirectory: ".",
-});
+steamAPI.key = STEAM_WEBAPI_KEY;
 
 steamUser.logOn({
     accountName: STEAM_USERNAME,

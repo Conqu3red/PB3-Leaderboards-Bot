@@ -11,6 +11,8 @@ declare module "@doctormckay/steam-webapi" {
             input: object,
             callback: (err: Error | null, response: object) => void
         ): void;
+
+        key?: string;
     }
 }
 

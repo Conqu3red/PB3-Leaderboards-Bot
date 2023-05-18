@@ -92,7 +92,6 @@ export class ExpandedSteamUser extends SteamUser {
                 },
                 Schema.CMsgClientLBSFindOrCreateLB,
                 (body) => {
-                    console.log("GetLeaderboard res");
                     const result = this.decode<ClientLBSFindOrCreateLBResponse>(
                         Schema.CMsgClientLBSFindOrCreateLBResponse,
                         body
