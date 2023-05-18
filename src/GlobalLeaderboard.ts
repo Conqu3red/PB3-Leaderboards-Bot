@@ -1,104 +1,60 @@
-import { LeaderboardEntry, LeaderboardType, LevelLeaderboards } from "./LeaderboardInterface";
-import { Remote } from "./RemoteLeaderboardInterface";
+import { LeaderboardType } from "./LeaderboardInterface";
 import { cacheManager } from "./resources/CacheManager";
 import { CampaignLevel } from "./resources/CampaignLevel";
-import rankToScore from "../json/rank_to_score.json";
-import { BaseLevel } from "./resources/Level";
 import { WeeklyLevel } from "./resources/WeeklyLevel";
 import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
 import { WorldFilter, codeMatchesWorldFilters } from "./utils/WorldFilter";
+import SteamUsernames from "./resources/SteamUsernameHandler";
+import { FormatScore } from "./utils/Format";
 
-export type LevelCategory = "all" | "regular" | "challenge" | "weekly" | "bonus";
+export type LevelCategory = "all" /* | "weekly"*/;
 
 const levelFilters = {
     all: (level: CampaignLevel) => true,
-    regular: (level: CampaignLevel) => !level.info.code.isChallenge && !level.info.code.isBonus,
-    challenge: (level: CampaignLevel) => level.info.code.isChallenge,
-    bonus: (level: CampaignLevel) => level.info.code.isBonus,
     weekly: (level: WeeklyLevel) => true,
 };
 
 export interface GlobalEntry {
-    user: Remote.User;
+    steam_id_user: string;
     value: number;
     rank: number;
 }
-
-export interface GlobalScoreComputer<T extends BaseLevel<any>> {
-    isValidOptions(options: GlobalOptions): boolean;
-    baseScore(levels: T[]): number;
-    getLevelSubtractScore(level: T, score: LeaderboardEntry, options: GlobalOptions): number;
-}
-
-export const GlobalScoreByRank: GlobalScoreComputer<CampaignLevel | WeeklyLevel> = {
-    isValidOptions(options) {
-        return true;
-    },
-    baseScore(levels) {
-        return 100 * levels.length;
-    },
-    getLevelSubtractScore(level, score, options) {
-        return 100 - rankToScore[score.rank - 1];
-    },
-};
-
-export const GlobalScoreByBudget: GlobalScoreComputer<CampaignLevel> = {
-    isValidOptions(options) {
-        return options.levelCategory !== "weekly";
-    },
-    baseScore(levels) {
-        return levels.reduce((a, b) => a + b.info.budget, 0);
-    },
-    getLevelSubtractScore(level, score, options) {
-        return level.info.budget - score.score;
-    },
-};
-
-export type GlobalScoreComputerType = "rank" | "moneyspent";
-
-export const globalScoreComputers = {
-    rank: GlobalScoreByRank,
-    moneyspent: GlobalScoreByBudget,
-};
 
 export interface GlobalOptions {
     type: LeaderboardType;
     levelCategory: LevelCategory;
     worldFilters?: WorldFilter[];
-    scoreComputer: GlobalScoreComputerType;
 }
 
 export const defaultOptions: GlobalOptions = {
     type: "any",
     levelCategory: "all",
-    scoreComputer: "rank",
 };
 
-export function selectLeaderboard(level: LevelLeaderboards, type: LeaderboardType) {
-    return type == "any" ? level.any : level.unbroken;
-}
-
-async function collateBoards<T extends BaseLevel<any>>(
-    levels: T[],
+async function collateBoards(
+    levels: CampaignLevel[],
     options: GlobalOptions
 ): Promise<GlobalEntry[]> {
     let userScores: Map<string, GlobalEntry> = new Map();
-    let scoreComputer: GlobalScoreComputer<T> = globalScoreComputers[options.scoreComputer];
-    const startScore = scoreComputer.baseScore(levels);
+    const startScore =
+        options.type === "stress"
+            ? levels.length * 10_000
+            : levels.reduce((a, b) => a + b.info.budget, 0);
 
     for (const level of levels) {
-        const board = level.get(options.type === "unbroken");
+        const board = level.get(options.type);
         for (const score of board.top1000) {
-            let entry = userScores.get(score.owner.id) ?? {
-                user: score.owner,
+            let entry = userScores.get(score.steam_id_user) ?? {
+                steam_id_user: score.steam_id_user,
                 value: startScore,
                 rank: NaN,
             };
 
-            entry.value -= scoreComputer.getLevelSubtractScore(level, score, options);
-            userScores.set(score.owner.id, entry);
+            entry.value -=
+                options.type === "stress" ? 10_000 - score.score : level.info.budget - score.score;
+            userScores.set(score.steam_id_user, entry);
         }
     }
 
@@ -118,30 +74,19 @@ async function collateBoards<T extends BaseLevel<any>>(
 
 export async function globalLeaderboard(options?: GlobalOptions): Promise<GlobalEntry[] | null> {
     options = Object.assign(defaultOptions, options);
-    let scoreComputer = globalScoreComputers[options.scoreComputer];
-    if (!scoreComputer.isValidOptions(options)) {
-        return null;
+    let levelFilter = levelFilters[options.levelCategory];
+    let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
+    if (options && options.worldFilters && options.worldFilters.length > 0) {
+        campaignLevels = campaignLevels.filter((level) =>
+            codeMatchesWorldFilters(level.info.code, options?.worldFilters ?? [])
+        );
     }
-
-    if (options.levelCategory !== "weekly") {
-        let levelFilter = levelFilters[options.levelCategory];
-        let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
-        if (options && options.worldFilters && options.worldFilters.length > 0) {
-            campaignLevels = campaignLevels.filter((level) =>
-                codeMatchesWorldFilters(level.info.code, options?.worldFilters ?? [])
-            );
-        }
-        return await collateBoards(campaignLevels, options);
-    } else {
-        let levelFilter = levelFilters[options.levelCategory];
-        let weeklyLevels = cacheManager.weeklyManager.weeklyLevels.filter(levelFilter);
-        return await collateBoards(weeklyLevels, options);
-    }
+    return await collateBoards(campaignLevels, options);
 }
 
 export function findUser(board: GlobalEntry[], userID: string): GlobalEntry | null {
     for (const score of board) {
-        if (score.user.id == userID) {
+        if (score.steam_id_user == userID) {
             return score;
         }
     }
@@ -156,13 +101,12 @@ export async function renderGlobal(
 ): Promise<Buffer> {
     options = Object.assign(defaultOptions, options);
     const canvas = createCanvas(300, 350);
-    const isMoneySpent = options.scoreComputer === "moneyspent";
 
     const columns: CTColumn[] = [
         { title: "#", options: { color: "#ffffff", textAlign: "right" } },
         { title: "Name", options: { color: "#ffffff", maxWidth: 150 } },
         {
-            title: isMoneySpent ? "Spent" : "Score",
+            title: "Spent",
             options: { color: "#ffffff", textAlign: "right" },
         },
     ];
@@ -172,8 +116,8 @@ export async function renderGlobal(
 
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
-        entry.user.display_name,
-        (isMoneySpent ? "$" : "") + entry.value.toLocaleString("en-US"),
+        SteamUsernames.get(entry.steam_id_user),
+        FormatScore(entry.value, options?.type ?? "any"),
     ]);
 
     // fit: true

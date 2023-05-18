@@ -8,7 +8,7 @@ import {
     InteractionCollector,
     Message,
     MessagePayload,
-    WebhookEditMessageOptions,
+    MessagePayloadOption,
 } from "discord.js";
 import { ExtendedClient } from "./Client";
 
@@ -55,7 +55,7 @@ export const arrowComponents = new ActionRowBuilder<ButtonBuilder>().addComponen
     },
 ]; */
 
-export type EditMessageType = string | MessagePayload | WebhookEditMessageOptions;
+export type EditMessageType = string | MessagePayload | MessagePayloadOption;
 
 export abstract class PagedResponder {
     client: ExtendedClient;

@@ -3,6 +3,7 @@ import {
     CommandInteraction,
     CommandInteractionOptionResolver,
     PermissionResolvable,
+    RESTPostAPIApplicationCommandsJSONBody,
 } from "discord.js";
 import { ExtendedClient } from "../structures/Client";
 
@@ -15,6 +16,6 @@ interface RunOptions {
 type RunFunction = (options: RunOptions) => any;
 
 export type CommandType = {
-    command: ApplicationCommandData;
+    command: RESTPostAPIApplicationCommandsJSONBody;
     run: RunFunction;
 };

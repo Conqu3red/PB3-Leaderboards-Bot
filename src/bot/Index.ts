@@ -23,7 +23,6 @@ export const bot = new ExtendedClient(botToken, [
 ]);
 
 sequelize.sync();
-cacheManager.backgroundUpdate();
 
 /* (async () => {
     await sequelize.sync();
@@ -42,8 +41,9 @@ steamUser.logOn({
 });
 
 steamUser.on("loggedOn", async (details) => {
-    console.log("Steam user logged in!");
-    console.log(details);
+    console.log("[Steam] logged in to steam.");
+    // FIXME: steam relogin, handle offline properly
 
     bot.start();
+    await Promise.all([cacheManager.backgroundUpdate(), cacheManager.nameUpdate()]);
 });

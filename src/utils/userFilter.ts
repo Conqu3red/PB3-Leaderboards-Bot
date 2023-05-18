@@ -1,4 +1,4 @@
-import { Remote } from "../RemoteLeaderboardInterface";
+import SteamUsernames from "../resources/SteamUsernameHandler";
 
 export type FilterType = "display_name" | "id";
 
@@ -7,12 +7,12 @@ export interface UserFilter {
     value: string;
 }
 
-export function matchesUserFilter(filter: UserFilter, user: Remote.User): boolean {
+export function matchesUserFilter(filter: UserFilter, steam_id: string): boolean {
     switch (filter.by) {
         case "display_name":
-            return user.display_name.toLowerCase() === filter.value.toLowerCase();
+            return SteamUsernames.get(steam_id).toLowerCase() === filter.value.toLowerCase();
         case "id":
-            return user.id === filter.value;
+            return steam_id === filter.value;
     }
 }
 

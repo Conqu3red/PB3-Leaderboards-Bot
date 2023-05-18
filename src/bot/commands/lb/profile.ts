@@ -21,6 +21,9 @@ import {
     pickUserFilterError,
     userMatchesDiscordID,
 } from "../../utils/pickUserFilter";
+import { FormatScore } from "../../../utils/Format";
+import SteamUsernames from "../../../resources/SteamUsernameHandler";
+import { steamUser } from "../../../resources/SteamUser";
 
 interface LeaderboardOptions {
     profileOptions: Options;
@@ -33,11 +36,14 @@ interface Data {
 
 class PagedProfileLeaderboard extends PagedResponder {
     data: Data;
+    username: string;
     constructor(client: ExtendedClient, interaction: CommandInteraction, data: Data) {
         let pageCount = 1 + Math.ceil(data.profile.stats.levelScores.length / ENTRIES_PER_PAGE);
         super(client, interaction, pageCount);
         this.data = data;
         this.page = 0;
+
+        this.username = SteamUsernames.get(this.data.profile.steam_id_user);
     }
 
     getDetails() {
@@ -48,32 +54,39 @@ class PagedProfileLeaderboard extends PagedResponder {
 
     generateGlobalPositionsPart(): string {
         const p = this.data.profile.stats.globalPositions;
-        const keys: (keyof typeof p)[] = ["all", "regular", "challenge", "weekly", "bonus"];
+        const keys: (keyof typeof p)[] = ["all", "weekly"];
 
         const formatPart = (name: string, entry: GlobalEntry | null) =>
-            entry ? `${name}: #${entry.rank} (${entry.value})` : ``;
+            entry
+                ? `${name}: #${entry.rank.toLocaleString("en-US")} (${FormatScore(
+                      entry.value,
+                      this.data.options.profileOptions.type
+                  )})`
+                : ``;
 
         return keys.map((k) => formatPart(k, p[k])).join("\n");
     }
 
-    generateScoreCountPart(scoreCount: ScoreCount): string {
-        return (
-            `Overall: \`${scoreCount["overall"]}\`\n` +
-            `Regular: \`${scoreCount["regular"]}\`\n` +
-            `Challenge: \`${scoreCount["challenge"]}\`\n` +
-            `Weekly: \`${scoreCount["weekly"]}\`\n` +
-            `Bonus: \`${scoreCount["bonus"]}\``
-        );
+    generateScoreCountPart(): string {
+        return scoreCountThresholds
+            .map((t) => `Top ${t}: ${this.data.profile.stats.scoreCounts[t].overall}`)
+            .join("\n");
     }
 
-    generateScoreCountParts(): EmbedField[] {
-        return scoreCountThresholds.map((t) => {
-            return {
-                name: `Top ${t}s`,
-                value: this.generateScoreCountPart(this.data.profile.stats.scoreCounts[t]),
-                inline: true,
-            };
-        });
+    generateScoreCountParts(): EmbedField {
+        return {
+            name: `Top Scores`,
+            value: this.generateScoreCountPart(),
+            inline: true,
+        };
+    }
+
+    generateIdField(): EmbedField {
+        return {
+            name: `Steam ID`,
+            value: `\`${this.data.profile.steam_id_user}\`\n[**View Steam Profile**](https://steamcommunity.com/profiles/${this.data.profile.steam_id_user})`,
+            inline: true,
+        };
     }
 
     async generateStatsMessage(): Promise<EditMessageType> {
@@ -83,18 +96,16 @@ class PagedProfileLeaderboard extends PagedResponder {
             inline: false,
         };
 
-        const scoreCountFields = this.generateScoreCountParts();
+        const scoreCountField = this.generateScoreCountParts();
 
         return {
             content: "",
             embeds: [
                 {
-                    title: `Profile (Stats) - \`${this.data.profile.user.display_name}\`, ID: \`${
-                        this.data.profile.user.id
-                    }\` ${this.getDetails()}`,
+                    title: `Profile (Stats) - \`${this.username}\`\` ${this.getDetails()}`,
                     description: `Showing Stats page. Press :arrow_forward: in reactions to see scores for each level.`,
                     color: 0x3586ff,
-                    fields: [globalPosField, ...scoreCountFields],
+                    fields: [globalPosField, scoreCountField],
                     footer: {
                         text: `Page ${this.page + 1}/${this.pageCount}`,
                     },
@@ -123,9 +134,7 @@ class PagedProfileLeaderboard extends PagedResponder {
             content: "",
             embeds: [
                 {
-                    title: `Profile - \`${
-                        this.data.profile.user.display_name
-                    }\` ${this.getDetails()}`,
+                    title: `Profile - \`${this.username}\` ${this.getDetails()}`,
                     color: 0x3586ff,
                     image: {
                         url: `attachment://${uuid}.png`,
@@ -159,10 +168,15 @@ export default new Command({
         .addStringOption((option) =>
             option.setName("user").setDescription("User to show profile of").setRequired(false)
         )
-        .addBooleanOption((option) =>
+        .addStringOption((option) =>
             option
-                .setName("unbroken")
-                .setDescription("Show leaderboard for scores that didn't break")
+                .setName("type")
+                .setDescription("Leaderboard type to display")
+                .setChoices(
+                    { name: "any", value: "any" },
+                    { name: "unbreaking", value: "unbreaking" },
+                    { name: "stress", value: "stress" }
+                )
                 .setRequired(false)
         )
         .toJSON(),

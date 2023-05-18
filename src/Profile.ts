@@ -1,6 +1,5 @@
-import { findUser, GlobalEntry, globalLeaderboard, selectLeaderboard } from "./GlobalLeaderboard";
+import { findUser, GlobalEntry, globalLeaderboard } from "./GlobalLeaderboard";
 import { LeaderboardEntry, LeaderboardType } from "./LeaderboardInterface";
-import { Remote } from "./RemoteLeaderboardInterface";
 import { cacheManager } from "./resources/CacheManager";
 import { CampaignLevel } from "./resources/CampaignLevel";
 import { BaseLevel } from "./resources/Level";
@@ -8,21 +7,16 @@ import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
 import { matchesUserFilter, UserFilter } from "./utils/userFilter";
+import { FormatScore } from "./utils/Format";
 
 export interface GlobalPositions {
     all: GlobalEntry | null;
-    regular: GlobalEntry | null;
-    challenge: GlobalEntry | null;
     weekly: GlobalEntry | null;
-    bonus: GlobalEntry | null;
 }
 
 export interface ScoreCount {
     overall: number;
-    regular: number;
-    challenge: number;
     weekly: number;
-    bonus: number;
 }
 
 export interface ScoreCounts {
@@ -41,7 +35,7 @@ export interface Stats {
 }
 
 export interface Profile {
-    user: Remote.User;
+    steam_id_user: string;
     stats: Stats;
 }
 
@@ -61,30 +55,24 @@ function isCampgainLevel(level: BaseLevel<any>): level is CampaignLevel {
 
 export async function getProfile(user: UserFilter, options?: Options): Promise<Profile | null> {
     options = Object.assign(defaultOptions, options);
-    let owner: Remote.User | undefined = undefined;
+    let owner: string | undefined = undefined;
 
     let levelScores: LevelScore[] = [];
     let scoreCounts: ScoreCounts = Object.fromEntries(
-        scoreCountThresholds.map((value) => [
-            value,
-            { overall: 0, regular: 0, challenge: 0, weekly: 0, bonus: 0 },
-        ])
+        scoreCountThresholds.map((value) => [value, { overall: 0, weekly: 0 }])
     );
 
-    const levels = [
-        ...cacheManager.campaignManager.campaignLevels,
-        ...cacheManager.weeklyManager.weeklyLevels,
-    ];
+    const levels = [...cacheManager.campaignManager.campaignLevels];
 
     for (const level of levels) {
-        let board = level.get(options.type === "unbroken");
+        let board = level.get(options.type);
 
         let entry: LeaderboardEntry | undefined = undefined;
         for (const score of board.top1000) {
-            if (!owner && matchesUserFilter(user, score.owner)) {
-                owner = score.owner;
+            if (!owner && matchesUserFilter(user, score.steam_id_user)) {
+                owner = score.steam_id_user;
             }
-            if (score.owner.id === owner?.id) {
+            if (score.steam_id_user === owner) {
                 entry = score;
 
                 // Threshold processing
@@ -92,9 +80,6 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
                     if (score.rank <= threshold) {
                         if (isCampgainLevel(level)) {
                             scoreCounts[threshold].overall += 1;
-                            if (level.info.code.isChallenge) scoreCounts[threshold].challenge += 1;
-                            else if (level.info.code.isBonus) scoreCounts[threshold].bonus += 1;
-                            else scoreCounts[threshold].regular += 1;
                         } else {
                             scoreCounts[threshold].weekly += 1;
                         }
@@ -115,46 +100,14 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
             (await globalLeaderboard({
                 levelCategory: "all",
                 type: options.type,
-                scoreComputer: "rank",
             })) ?? [],
-            owner.id
+            owner
         ),
-        regular: findUser(
-            (await globalLeaderboard({
-                levelCategory: "regular",
-                type: options.type,
-                scoreComputer: "rank",
-            })) ?? [],
-            owner.id
-        ),
-        challenge: findUser(
-            (await globalLeaderboard({
-                levelCategory: "challenge",
-                type: options.type,
-                scoreComputer: "rank",
-            })) ?? [],
-            owner.id
-        ),
-        weekly: findUser(
-            (await globalLeaderboard({
-                levelCategory: "weekly",
-                type: options.type,
-                scoreComputer: "rank",
-            })) ?? [],
-            owner.id
-        ),
-        bonus: findUser(
-            (await globalLeaderboard({
-                levelCategory: "bonus",
-                type: options.type,
-                scoreComputer: "rank",
-            })) ?? [],
-            owner.id
-        ),
+        weekly: null,
     };
 
     return {
-        user: owner,
+        steam_id_user: owner,
         stats: {
             globalPositions,
             levelScores,
@@ -187,7 +140,7 @@ export async function renderProfileLevelScores(
     const data: CTData = chosen_entries.map((entry) => [
         entry.compactName,
         entry.score?.rank?.toString() ?? "",
-        entry.score ? "$" + entry.score?.score?.toLocaleString("en-US") : "",
+        entry.score ? FormatScore(entry.score.score, options?.type ?? "any") : "",
         entry.score?.didBreak ? "✱" : "",
     ]);
 
