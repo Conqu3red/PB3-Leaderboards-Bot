@@ -1,7 +1,9 @@
-import { Leaderboard, LeaderboardEntry } from "./LeaderboardInterface";
+import { LeaderboardEntry, LeaderboardType } from "./LeaderboardInterface";
 import { CanvasTable, CTConfig, CTData, CTColumn, CTTableDimensions } from "canvas-table";
 import { Canvas, createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
+import SteamUsernames from "./resources/SteamUsernameHandler";
+import { FormatScore } from "./utils/Format";
 
 /* export function cropCanvas(canvas: Canvas, pos: CTTableDimensions, devicePixelRatio: number) {
     const p = {
@@ -23,6 +25,7 @@ export const BOARD_DIMENSIONS: [width: number, height: number] = [300, 350];
 
 export interface BoardDetails {
     label?: string;
+    type: LeaderboardType;
     entries: LeaderboardEntry[];
 }
 
@@ -41,8 +44,8 @@ export async function renderBoardCanvas(board: BoardDetails, index: number): Pro
 
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
-        entry.owner.display_name,
-        `$${entry.score.toLocaleString("en-US")}`,
+        SteamUsernames.get(entry.steam_id_user),
+        `${FormatScore(entry.score, board.type)}`,
         entry.didBreak ? "✱" : "",
     ]);
 

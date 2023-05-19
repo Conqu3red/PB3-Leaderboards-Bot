@@ -80,7 +80,7 @@ export abstract class PagedResponder {
         if (this.message) {
             this.collector = this.message.createMessageComponentCollector({
                 componentType: ComponentType.Button,
-                time: 2 * 60 * 1000,
+                idle: 2 * 60 * 1000,
                 filter: (i) => {
                     i.deferUpdate();
                     return (

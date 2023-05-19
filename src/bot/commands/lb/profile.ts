@@ -24,6 +24,7 @@ import {
 import { FormatScore } from "../../../utils/Format";
 import SteamUsernames from "../../../resources/SteamUsernameHandler";
 import { steamUser } from "../../../resources/SteamUser";
+import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
 interface LeaderboardOptions {
     profileOptions: Options;
@@ -48,13 +49,14 @@ class PagedProfileLeaderboard extends PagedResponder {
 
     getDetails() {
         let details: string[] = [];
-        if (this.data.options.profileOptions.type === "unbroken") details.push("unbroken");
+        if (this.data.options.profileOptions.type !== "any")
+            details.push(this.data.options.profileOptions.type);
         return details.length === 0 ? "" : `(${details.join(", ")})`;
     }
 
     generateGlobalPositionsPart(): string {
         const p = this.data.profile.stats.globalPositions;
-        const keys: (keyof typeof p)[] = ["all", "weekly"];
+        const keys: (keyof typeof p)[] = ["all"];
 
         const formatPart = (name: string, entry: GlobalEntry | null) =>
             entry
@@ -69,7 +71,7 @@ class PagedProfileLeaderboard extends PagedResponder {
 
     generateScoreCountPart(): string {
         return scoreCountThresholds
-            .map((t) => `Top ${t}: ${this.data.profile.stats.scoreCounts[t].overall}`)
+            .map((t) => `Top ${t}: \`${this.data.profile.stats.scoreCounts[t].overall}\``)
             .join("\n");
     }
 
@@ -97,23 +99,20 @@ class PagedProfileLeaderboard extends PagedResponder {
         };
 
         const scoreCountField = this.generateScoreCountParts();
+        const idField = this.generateIdField();
 
         return {
             content: "",
             embeds: [
                 {
-                    title: `Profile (Stats) - \`${this.username}\`\` ${this.getDetails()}`,
+                    title: `Profile Stats - \`${this.username}\` ${this.getDetails()}`,
                     description: `Showing Stats page. Press :arrow_forward: in reactions to see scores for each level.`,
-                    color: 0x3586ff,
-                    fields: [globalPosField, scoreCountField],
+                    fields: [globalPosField, scoreCountField, idField],
                     footer: {
                         text: `Page ${this.page + 1}/${this.pageCount}`,
                     },
-                    author: {
-                        name: "PB2 Leaderboards Bot",
-                        icon_url:
-                            "https://cdn.discordapp.com/app-assets/720364938908008568/758752385244987423.png",
-                    },
+                    color: EMBED_COLOR,
+                    author: EMBED_AUTHOR,
                 },
             ],
             components: [arrowComponents],
@@ -183,9 +182,8 @@ export default new Command({
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const user = args.getString("user", false);
-        const unbroken = args.getBoolean("unbroken", false) ?? false;
+        const type = (args.getString("type", false) ?? "any") as LeaderboardType;
 
-        const type: LeaderboardType = unbroken ? "unbroken" : "any";
         const profileOptions: Options = {
             type,
         };

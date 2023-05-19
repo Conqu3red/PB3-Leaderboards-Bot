@@ -1,4 +1,4 @@
-import { Leaderboard, LeaderboardEntry } from "../../../LeaderboardInterface";
+import { Leaderboard, LeaderboardEntry, LeaderboardType } from "../../../LeaderboardInterface";
 import { encodeLevelCode, LevelCode, parseLevelCode } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
@@ -13,9 +13,10 @@ import { N_ENTRIES as ENTRIES_PER_PAGE } from "../../../Consts";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
+import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
 interface LeaderboardOptions {
-    unbroken: boolean;
+    type: LeaderboardType;
     userFilter: UserFilter | null;
     price: number | null;
     rank: number | null;
@@ -27,7 +28,8 @@ function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
 
         if (options.rank && entry.rank >= options.rank) return i;
         if (options.price && entry.score >= options.price) return i;
-        if (options.userFilter && matchesUserFilter(options.userFilter, entry.owner)) return i;
+        if (options.userFilter && matchesUserFilter(options.userFilter, entry.steam_id_user))
+            return i;
     }
 
     return 0;
@@ -36,7 +38,6 @@ function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
 interface Data {
     level: CampaignLevel;
     board: Leaderboard;
-    comparisonBoard?: Leaderboard;
     options: LeaderboardOptions;
     updateTime: number;
 }
@@ -53,19 +54,10 @@ class PagedLeaderboard extends PagedResponder {
     }
 
     async generateMessage(): Promise<EditMessageType> {
-        let board = this.data.comparisonBoard
-            ? await renderBoardComparison(
-                  {
-                      entries: this.data.board.top1000,
-                      label: encodeLevelCode(this.data.level.info.code),
-                  },
-                  {
-                      entries: this.data.comparisonBoard.top1000,
-                      label: `${encodeLevelCode(this.data.level.info.code)}c`,
-                  },
-                  this.page * ENTRIES_PER_PAGE
-              )
-            : await renderBoard({ entries: this.data.board.top1000 }, this.page * ENTRIES_PER_PAGE);
+        let board = await renderBoard(
+            { entries: this.data.board.top1000, type: this.data.options.type },
+            this.page * ENTRIES_PER_PAGE
+        );
         let shortTime = DateTime.fromMillis(this.data.updateTime).toRelative({ style: "short" });
         let uuid = uuidv4();
 
@@ -76,24 +68,20 @@ class PagedLeaderboard extends PagedResponder {
                 {
                     title: `Leaderboard for ${encodeLevelCode(this.data.level.info.code)}: ${
                         this.data.level.info.name
-                    }${this.data.options.unbroken ? " (unbroken)" : ""}`,
+                    }${this.data.options.type !== "any" ? ` (${this.data.options.type})` : ""}`,
                     description: `Showing top ${this.data.board.top1000.length.toLocaleString(
                         "en-US"
-                    )} entries out of ${this.data.board.metadata.leaderboard_entry_count.toLocaleString(
+                    )} entries out of ${this.data.board.leaderboard_entry_count.toLocaleString(
                         "en-US"
                     )} unique ranks.`,
-                    color: 0x3586ff,
                     image: {
                         url: `attachment://${uuid}.png`,
                     },
                     footer: {
                         text: `Page ${this.page + 1}/${this.pageCount} • ${shortTime}`,
                     },
-                    author: {
-                        name: "PB2 Leaderboards Bot",
-                        icon_url:
-                            "https://cdn.discordapp.com/app-assets/720364938908008568/758752385244987423.png",
-                    },
+                    color: EMBED_COLOR,
+                    author: EMBED_AUTHOR,
                 },
             ],
             components: [arrowComponents],
@@ -113,10 +101,15 @@ export default new Command({
                 .setDescription("Level identifier to display leaderboard for")
                 .setRequired(true)
         )
-        .addBooleanOption((option) =>
+        .addStringOption((option) =>
             option
-                .setName("unbroken")
-                .setDescription("Show leaderboard for scores that didn't break")
+                .setName("type")
+                .setDescription("Leaderboard type to display")
+                .setChoices(
+                    { name: "any", value: "any" },
+                    { name: "unbreaking", value: "unbreaking" },
+                    { name: "stress", value: "stress" }
+                )
                 .setRequired(false)
         )
         .addStringOption((option) =>
@@ -128,21 +121,14 @@ export default new Command({
         .addIntegerOption((option) =>
             option.setName("price").setDescription("Price to jump to").setRequired(false)
         )
-        .addBooleanOption((option) =>
-            option
-                .setName("compare_challenge")
-                .setDescription("Whether or not to compare with challenge variant")
-                .setRequired(false)
-        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const levelCode = parseLevelCode(args.getString("level", true));
-        const unbroken = args.getBoolean("unbroken", false) ?? false;
+        const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
         const price = args.getInteger("price", false);
-        const compareChallenge = args.getBoolean("compare_challenge", false) ?? false;
 
         if (!levelCode) {
             await error(interaction, "Invalid level code.");
@@ -158,30 +144,18 @@ export default new Command({
             }
         }
 
-        if (compareChallenge) levelCode.isChallenge = false;
-
         const level = await cacheManager.campaignManager.getByCode(levelCode);
         if (!level) {
             await error(interaction, "Unknown level.");
             return;
         }
-        const board = level.get(unbroken);
-
-        let comparisonBoard: Leaderboard | undefined;
-        if (compareChallenge) {
-            const comparisonLevel = await cacheManager.campaignManager.getByCode({
-                ...levelCode,
-                isChallenge: true,
-            });
-            comparisonBoard = await comparisonLevel?.get(unbroken);
-        }
+        const board = level.get(type);
 
         const paged = new PagedLeaderboard(client, interaction, {
             level,
             board,
-            comparisonBoard,
-            options: { unbroken, userFilter, rank, price },
-            updateTime: await level.lastReloadTimeMs,
+            options: { type, userFilter, rank, price },
+            updateTime: level.lastReloadTimeMs,
         });
         await paged.start();
     },

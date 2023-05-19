@@ -3,9 +3,9 @@ import {
     ActionRowBuilder,
     ComponentType,
     InteractionCollector,
-    SelectMenuBuilder,
-    SelectMenuInteraction,
     SlashCommandBuilder,
+    StringSelectMenuBuilder,
+    StringSelectMenuInteraction,
 } from "discord.js";
 import { parseLevelCode } from "../../../LevelCode";
 import { findAllUsersWithUsername } from "../../../UserFinder";
@@ -14,6 +14,9 @@ import { BaseLevel } from "../../../resources/Level";
 import { error } from "../../utils/embeds";
 import User from "../../models/User";
 import { USER_ID_PATTERN } from "../../utils/pickUserFilter";
+import { CampaignLevel } from "../../../resources/CampaignLevel";
+import { FormatScore } from "../../../utils/Format";
+import SteamUsernames from "../../../resources/SteamUsernameHandler";
 
 async function linkUserWithID(discordID: string, polyBridgeID: string) {
     await User.upsert({ discordID, polyBridgeID });
@@ -33,15 +36,11 @@ export default new Command({
         .addStringOption((option) =>
             option.setName("level").setDescription("Level to scan").setRequired(false)
         )
-        .addStringOption((option) =>
-            option.setName("week").setDescription("Weekly level to scan").setRequired(false)
-        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const user = args.getString("user", false);
         const levelCode = args.getString("level", false);
-        const week = args.getInteger("week", false);
 
         if (!user) {
             let existingLink = await User.findOne({ where: { discordID: interaction.user.id } });
@@ -65,7 +64,7 @@ export default new Command({
             return;
         }
 
-        let levels: BaseLevel<any>[];
+        let levels: CampaignLevel[];
 
         if (levelCode) {
             const code = parseLevelCode(levelCode);
@@ -80,17 +79,8 @@ export default new Command({
             }
 
             levels = [level];
-        } else if (week) {
-            const level = await cacheManager.weeklyManager.getByWeek(week);
-            if (!level) {
-                await error(interaction, "Level not found.");
-                return;
-            }
-            levels = [level];
         } else {
-            levels = cacheManager.campaignManager.campaignLevels.concat(
-                cacheManager.weeklyManager.weeklyLevels as BaseLevel<any>[]
-            );
+            levels = cacheManager.campaignManager.campaignLevels;
         }
 
         const matchingUsers = (await findAllUsersWithUsername(levels, user)).slice(0, 25); // limit of 25
@@ -104,18 +94,23 @@ export default new Command({
             const message = await interaction.editReply({
                 content: `Found ${matchingUsers.length} users with a matching username.`,
                 components: [
-                    new ActionRowBuilder<SelectMenuBuilder>().addComponents(
-                        new SelectMenuBuilder()
+                    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+                        new StringSelectMenuBuilder()
                             .setCustomId("user")
                             .setPlaceholder("Select a user")
                             .setOptions(
                                 ...matchingUsers.map((user) => {
                                     return {
-                                        label: `${user.user.display_name} (ID: ${user.user.id})`,
-                                        description: `Score on ${user.score.compactName}: #${
-                                            user.score.score.rank
-                                        }, $${user.score.score.score.toLocaleString("en-US")}`,
-                                        value: user.user.id,
+                                        label: `${SteamUsernames.get(user.steam_id_user)} (ID: ${
+                                            user.steam_id_user
+                                        })`,
+                                        description: `Score on ${user.compactName}${
+                                            user.type !== "any" ? ` (${user.type})` : ""
+                                        }: #${user.score.rank}, ${FormatScore(
+                                            user.score.score,
+                                            user.type
+                                        )}`,
+                                        value: user.steam_id_user,
                                     };
                                 })
                             )
@@ -123,9 +118,9 @@ export default new Command({
                 ],
             });
 
-            const collector: InteractionCollector<SelectMenuInteraction> =
+            const collector: InteractionCollector<StringSelectMenuInteraction> =
                 message.createMessageComponentCollector({
-                    componentType: ComponentType.SelectMenu,
+                    componentType: ComponentType.StringSelect,
                     time: 10 * 60 * 1000,
                     max: 1,
                     filter: (i) => {

@@ -1,4 +1,4 @@
-import { Leaderboard } from "../../../LeaderboardInterface";
+import { Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
 import { encodeLevelCode, LevelCode, parseLevelCode } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
@@ -20,51 +20,44 @@ import {
     RenderConfig,
     renderHistogram,
 } from "../../../ScoreDistribution";
-import { getInterpolatedRank, getPercentile, implyMissingBuckets } from "../../../Milestones";
+import { getInterpolatedRank, getPercentile } from "../../../Milestones";
 import { campaignBuckets } from "../../../resources/Buckets";
+import { FormatScore } from "../../../utils/Format";
+import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
 export default new Command({
     command: new SlashCommandBuilder()
-        .setName("score-distribution")
-        .setDescription("Shows the score distribution of a campaign leaderboard's scores")
+        .setName("histogram")
+        .setDescription("Shows the histogram for a leaderboard")
         .setDMPermission(false)
         .addStringOption((option) =>
             option
                 .setName("level")
-                .setDescription("Level identifier to display leaderboard for")
+                .setDescription("Level identifier to display histogram for")
                 .setRequired(true)
         )
-        .addBooleanOption((option) =>
+        .addStringOption((option) =>
             option
-                .setName("unbroken")
-                .setDescription("Show leaderboard for scores that didn't break")
+                .setName("type")
+                .setDescription("Leaderboard type to display")
+                .setChoices(
+                    { name: "any", value: "any" },
+                    { name: "unbreaking", value: "unbreaking" },
+                    { name: "stress", value: "stress" }
+                )
                 .setRequired(false)
         )
-        .addIntegerOption((option) =>
-            option.setName("price").setDescription("Price to jump to").setRequired(false)
-        )
-        .addIntegerOption((option) =>
-            option
-                .setName("resolution")
-                .setDescription("Number of bars in the emitted chart (default: 40)")
-                .setRequired(false)
-                .setMinValue(20)
-                .setMaxValue(200)
-        )
-        .addBooleanOption((option) =>
-            option
-                .setName("extended")
-                .setDescription("Render chart from 2x budget to $0")
-                .setRequired(false)
+        .addNumberOption((option) =>
+            option.setName("score").setDescription("Score to jump to").setRequired(false)
         )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const levelCode = parseLevelCode(args.getString("level", true));
-        const unbroken = args.getBoolean("unbroken", false) ?? false;
-        const price = args.getInteger("price", false);
-        const resolution = args.getInteger("resolution", false) ?? 40;
-        const extended = args.getBoolean("extended", false) ?? false;
+        const type = (args.getString("type", false) ?? "any") as LeaderboardType;
+        let score = args.getNumber("score", false);
+        if (type === "stress" && score) score *= 100;
+        // FIXME: parse xx.xx% as valid options for SCORE param, also accept commas and $.
 
         if (!levelCode) {
             await error(interaction, "Invalid level code.");
@@ -85,18 +78,18 @@ export default new Command({
             return;
         }
 
-        const buckets = implyMissingBuckets(levelBuckets[unbroken ? "unbroken" : "any"]);
-        const histogram_groups = collectBuckets(buckets, resolution, level.info.budget, extended);
+        const histogram_groups = collectBuckets(levelBuckets[type]);
 
-        const options: RenderConfig = { levelBudget: level.info.budget };
+        const options: RenderConfig = { levelBudget: level.info.budget, type };
 
         let additional_description = "";
-        if (price) {
-            options.userScore = price;
-            options.userPercentile = getPercentile(price, buckets);
-            const estimated_rank = getInterpolatedRank(price, buckets);
-            additional_description = `\nA score of \`$${price.toLocaleString(
-                "en-US"
+        if (score !== null) {
+            options.userScore = score;
+            options.userPercentile = getPercentile(score, levelBuckets[type]);
+            const estimated_rank = getInterpolatedRank(score, levelBuckets[type]);
+            additional_description = `\nA score of \`${FormatScore(
+                score,
+                type
             )}\` would rank approximately \`#${estimated_rank.toLocaleString("en-US")}\` - Top ${
                 options.userPercentile
             }%`;
@@ -110,21 +103,17 @@ export default new Command({
             embeds: [
                 {
                     title: `Score Distribution for ${level.compactName()}${
-                        unbroken ? " (unbroken)" : ""
+                        type !== "any" ? ` (${type})` : ""
                     }`,
                     description:
                         `This level has a budget of $${level.info.budget.toLocaleString(
                             "en-US"
                         )}.` + additional_description,
-                    color: 0x3586ff,
                     image: {
                         url: "attachment://percentiles.png",
                     },
-                    author: {
-                        name: "PB2 Leaderboards Bot",
-                        icon_url:
-                            "https://cdn.discordapp.com/app-assets/720364938908008568/758752385244987423.png",
-                    },
+                    color: EMBED_COLOR,
+                    author: EMBED_AUTHOR,
                 },
             ],
             files: [attachment],

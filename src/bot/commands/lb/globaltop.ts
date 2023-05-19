@@ -21,10 +21,10 @@ import {
     parseWorldFilter,
     WorldFilter,
 } from "../../../utils/WorldFilter";
+import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
 interface LeaderboardOptions {
     globalOptions: GlobalOptions;
-    unbroken: boolean;
     userFilter: UserFilter | null;
     score: number | null;
     rank: number | null;
@@ -36,7 +36,8 @@ function getBoardIndex(board: GlobalEntry[], options: LeaderboardOptions) {
 
         if (options.rank && entry.rank === options.rank) return i;
         if (options.score && entry.value === options.score) return i;
-        if (options.userFilter && matchesUserFilter(options.userFilter, entry.user)) return i;
+        if (options.userFilter && matchesUserFilter(options.userFilter, entry.steam_id_user))
+            return i;
     }
 
     return 0;
@@ -66,7 +67,8 @@ class PagedGlobalLeaderboard extends PagedResponder {
             const worlds = formatManyWorldFilters(worldFilters);
             details.push(`World ${worlds}`);
         }
-        if (this.data.options.unbroken) details.push("unbroken");
+        if (this.data.options.globalOptions.type != "any")
+            details.push(this.data.options.globalOptions.type);
         return details.length === 0 ? "" : `(${details.join(", ")})`;
     }
 
@@ -84,18 +86,14 @@ class PagedGlobalLeaderboard extends PagedResponder {
             embeds: [
                 {
                     title: `Global Leaderboard ${this.getDetails()}`,
-                    color: 0x3586ff,
                     image: {
                         url: `attachment://${uuid}.png`,
                     },
                     footer: {
                         text: `Page ${this.page + 1}/${this.pageCount}`,
                     },
-                    author: {
-                        name: "PB2 Leaderboards Bot",
-                        icon_url:
-                            "https://cdn.discordapp.com/app-assets/720364938908008568/758752385244987423.png",
-                    },
+                    color: EMBED_COLOR,
+                    author: EMBED_AUTHOR,
                 },
             ],
             components: [arrowComponents],
@@ -109,22 +107,14 @@ export default new Command({
         .setName("globaltop")
         .setDescription("Shows the global leaderboard")
         .setDMPermission(false)
-        .addBooleanOption((option) =>
-            option
-                .setName("unbroken")
-                .setDescription("Show leaderboard for scores that didn't break")
-                .setRequired(false)
-        )
         .addStringOption((option) =>
             option
                 .setName("type")
-                .setDescription("Type of levels to show global leaderboard for")
+                .setDescription("Leaderboard type to display")
                 .setChoices(
-                    { name: "all", value: "all" },
-                    { name: "regular", value: "regular" },
-                    { name: "challenge", value: "challenge" },
-                    { name: "weekly", value: "weekly" },
-                    { name: "bonus", value: "bonus" }
+                    { name: "any", value: "any" },
+                    { name: "unbreaking", value: "unbreaking" },
+                    { name: "stress", value: "stress" }
                 )
                 .setRequired(false)
         )
@@ -137,27 +127,19 @@ export default new Command({
         .addIntegerOption((option) =>
             option.setName("score").setDescription("Score to jump to").setRequired(false)
         )
-        .addBooleanOption((option) =>
-            option
-                .setName("moneyspent")
-                .setDescription("Display total money spent")
-                .setRequired(false)
-        )
         .addStringOption((option) =>
             option
                 .setName("world")
-                .setDescription("Display for specific world(s): 1 - 6, 1c - 6c, B1, B2")
+                .setDescription("Display for specific world(s)")
                 .setRequired(false)
         )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
-        const category = (args.getString("type", false) ?? "all") as LevelCategory;
-        const unbroken = args.getBoolean("unbroken", false) ?? false;
+        const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
         const score = args.getInteger("score", false);
-        const moneyspent = args.getBoolean("moneyspent", false) ?? false;
         const world = args.getString("world", false);
 
         let worldFilters: WorldFilter[] = [];
@@ -169,12 +151,10 @@ export default new Command({
             }
         }
 
-        const type: LeaderboardType = unbroken ? "unbroken" : "any";
         const globalOptions: GlobalOptions = {
             type,
-            levelCategory: category,
+            levelCategory: "all",
             worldFilters: worldFilters,
-            scoreComputer: moneyspent ? "moneyspent" : "rank",
         };
 
         let userFilter: UserFilter | null = null;
@@ -194,7 +174,7 @@ export default new Command({
 
         const paged = new PagedGlobalLeaderboard(client, interaction, {
             board,
-            options: { globalOptions, unbroken, userFilter, rank, score },
+            options: { globalOptions, userFilter, rank, score },
         });
         await paged.start();
     },

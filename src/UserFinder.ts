@@ -1,6 +1,7 @@
-import { LeaderboardEntry } from "./LeaderboardInterface";
-import { Remote } from "./RemoteLeaderboardInterface";
+import { LeaderboardEntry, LeaderboardType } from "./LeaderboardInterface";
+import { pickUserFilter } from "./bot/utils/pickUserFilter";
 import { BaseLevel } from "./resources/Level";
+import { UserFilter, matchesUserFilter } from "./utils/userFilter";
 
 export interface LabledScore {
     compactName: string;
@@ -8,8 +9,10 @@ export interface LabledScore {
 }
 
 export interface FoundUser {
-    user: Remote.User;
-    score: LabledScore;
+    steam_id_user: string;
+    compactName: string;
+    type: LeaderboardType;
+    score: LeaderboardEntry;
 }
 
 export async function findAllUsersWithUsernameOnLevel(
@@ -18,22 +21,22 @@ export async function findAllUsersWithUsernameOnLevel(
 ): Promise<Map<string, FoundUser>> {
     username = username.toLowerCase();
     let users: Map<string, FoundUser> = new Map();
-    let boards = [level.get(false), level.get(true)];
-    let unbroken = false;
 
-    for (const board of boards) {
+    const userFilter: UserFilter = { by: "display_name", value: username.toLowerCase() };
+
+    for (const type of ["any", "unbroken", "stress"]) {
+        const board = level.get(type as LeaderboardType);
         for (const entry of board.top1000) {
-            if (entry.owner.display_name.toLocaleLowerCase() === username) {
-                users.set(entry.owner.id, {
-                    user: entry.owner,
-                    score: {
-                        score: entry,
-                        compactName: level.compactName() + (unbroken ? " (unbroken)" : ""),
-                    },
+            if (matchesUserFilter(userFilter, entry.steam_id_user)) {
+                if (users.has(entry.steam_id_user)) continue;
+                users.set(entry.steam_id_user, {
+                    steam_id_user: entry.steam_id_user,
+                    score: entry,
+                    compactName: level.compactName(),
+                    type: type as LeaderboardType,
                 });
             }
         }
-        unbroken = true;
     }
 
     return users;

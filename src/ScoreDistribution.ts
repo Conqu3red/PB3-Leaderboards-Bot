@@ -1,8 +1,8 @@
-import { Canvas, createCanvas } from "canvas";
+import { createCanvas } from "canvas";
 import { LeaderboardType } from "./LeaderboardInterface";
 import { campaignBuckets, LevelBucket } from "./resources/Buckets";
 import { CampaignLevel } from "./resources/CampaignLevel";
-import { implyMissingBuckets } from "./Milestones";
+import { FormatScore } from "./utils/Format";
 
 export interface HistogramBucket {
     f: number;
@@ -10,102 +10,33 @@ export interface HistogramBucket {
     endValue: number;
 }
 
-export function constrainBucketsToBudget(buckets: LevelBucket[], levelBudget: number) {
-    let shift = levelBudget;
-    for (let i = buckets.length - 1; i >= 0; i--) {
-        let bucket = buckets[i];
-        if (bucket.endValue >= shift) {
-            bucket.endValue = shift;
-            shift--;
-        }
-
-        if (bucket.startValue >= shift) {
-            bucket.startValue = shift;
-            shift--;
-        }
-    }
-}
-
 const LAST_BUCKET_EXCLUDE_THRESHOLD = 2;
 
-export function collectBuckets(
-    hist: LevelBucket[],
-    bucketCount: number,
-    levelBudget?: number,
-    extendedRange?: boolean
-): HistogramBucket[] {
+export function collectBuckets(levelBucket: LevelBucket): HistogramBucket[] {
     // On many levels, a couple of users have scores WAY higher than the max budget
-    constrainBucketsToBudget(
-        hist,
-        levelBudget === undefined
-            ? hist[hist.length - 1].startValue * LAST_BUCKET_EXCLUDE_THRESHOLD
-            : levelBudget * 2
-    );
-
-    const first_value = extendedRange ? 0 : hist[0].startValue;
-    const final_value =
-        extendedRange && levelBudget ? levelBudget * 2 : hist[hist.length - 1].endValue;
-    const value_range = final_value - first_value;
-
-    let groups: HistogramBucket[] = [];
-
-    let i = 0;
-    let group_n = 0;
-    let group: HistogramBucket = {
-        f: 0,
-        startValue: first_value,
-        endValue: first_value + (1 / bucketCount) * value_range,
-    };
-    while (i < hist.length) {
-        const bucket = hist[i];
-
-        // interpolate between
-        const included_f =
-            (Math.min(group.endValue, bucket.endValue) -
-                Math.max(group.startValue, bucket.startValue)) /
-            (bucket.endValue - bucket.startValue);
-
-        if (included_f > 0) {
-            group.f += included_f;
-        } else if (bucket.endValue === bucket.startValue && group.startValue <= bucket.startValue) {
-            // Edge case where bucket has 0 width, include 1 frequency
-            group.f += 1;
-        }
-
-        if (bucket.endValue <= group.endValue) {
-            i++;
-        }
-
-        if (included_f < 0 || bucket.endValue >= group.endValue) {
-            // move to next group
-            groups.push(group);
-            group_n++;
-            group = {
-                f: 0,
-                startValue: first_value + (group_n / bucketCount) * value_range,
-                endValue: first_value + ((group_n + 1) / bucketCount) * value_range,
-            };
-        }
+    let histBuckets: HistogramBucket[] = [];
+    for (let i = 0; i < levelBucket.start.length; i++) {
+        histBuckets.push({
+            startValue: levelBucket.start[i],
+            endValue: levelBucket.end[i],
+            f: levelBucket.count[i],
+        });
     }
 
-    if (group.f > 0) groups.push(group);
-
-    return groups;
+    return histBuckets;
 }
 
 export async function getHistogramBuckets(
     level: CampaignLevel,
-    type: LeaderboardType,
-    bucketCount: number
+    type: LeaderboardType
 ): Promise<HistogramBucket[] | null> {
     const allBuckets = await campaignBuckets.get();
     const levelBuckets = allBuckets[level.info.id];
     if (!levelBuckets) {
         return null;
     }
-    const buckets = implyMissingBuckets(levelBuckets[type]);
 
-    return collectBuckets(buckets, bucketCount, level.info.budget);
+    return collectBuckets(levelBuckets[type]);
 }
 
 const WIDTH = 800;
@@ -115,6 +46,7 @@ const BORDER = 20;
 const y_scale = 1;
 
 export interface RenderConfig {
+    type: LeaderboardType;
     levelBudget?: number;
     userScore?: number;
     userPercentile?: number;
@@ -156,7 +88,7 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
         ctx.fillRect(BORDER + previous_endPixel, GUTTER + BORDER, adjusted_width, HEIGHT);
 
         if (config.levelBudget) {
-            if (x + cw / 2 < config.levelBudget)
+            if (bucket.endValue < config.levelBudget)
                 ctx.fillStyle = UNDERBUDGET_COLORS[i % UNDERBUDGET_COLORS.length];
             else ctx.fillStyle = OVERBUDGET_COLORS[i % OVERBUDGET_COLORS.length];
         } else {
@@ -212,7 +144,7 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     ctx.fillStyle = "white";
 
     ctx.fillText(
-        `$${Math.round(hist[hist.length - 1].endValue).toLocaleString("en-US")}`,
+        `${FormatScore(Math.round(hist[hist.length - 1].endValue), config.type)}`,
         BORDER - 5,
         GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
     );
@@ -223,12 +155,12 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     ctx.fillStyle = "white";
 
     ctx.fillText(
-        `$${Math.round(hist[0].startValue).toLocaleString("en-US")}`,
+        `${FormatScore(Math.round(hist[0].startValue), config.type)}`,
         BORDER + WIDTH + 5,
         GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
     );
 
-    if (config.userScore) {
+    if (config.userScore !== undefined) {
         const userScore = Math.max(
             hist[0].startValue,
             Math.min(hist[hist.length - 1].endValue, config.userScore)
@@ -252,7 +184,7 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
         ctx.textAlign = (userScore - hist[0].startValue) / valueRange > 0.5 ? "left" : "right";
         ctx.fillStyle = "white";
 
-        const line1 = `$${Math.round(userScore).toLocaleString("en-US")}`;
+        const line1 = `${FormatScore(Math.round(userScore), config.type)}`;
         const line2 = `Top ${config.userPercentile}%`;
 
         ctx.fillText(

@@ -1,75 +1,82 @@
 import { Parser } from "binary-parser";
 import { SimpleResource } from "./RemoteResource";
 
+export const BUCKETS_PER_ARRAY = 20; // Taken from the PB3 code.
+
 interface CampaignBuckets {
     [key: string]: LevelBuckets | undefined;
 }
 
 export interface LevelBuckets {
-    any: (LevelBucket | null)[];
-    unbroken: (LevelBucket | null)[];
+    any: LevelBucket;
+    unbroken: LevelBucket;
+    stress: LevelBucket;
 }
 
 export interface LevelBucket {
-    startRank: number;
-    endRank: number;
-    startValue: number;
-    endValue: number;
+    start: number[];
+    end: number[];
+    count: number[];
 }
+
+export function LevelBucketCreate(): LevelBucket {
+    return {
+        start: new Array(BUCKETS_PER_ARRAY).fill(0),
+        end: new Array(BUCKETS_PER_ARRAY).fill(0),
+        count: new Array(BUCKETS_PER_ARRAY).fill(0),
+    };
+}
+
+const typeParser = Parser.start().endianness("little").int32("start").int32("end").int32("count");
 
 const bucketParser = Parser.start()
     .endianness("little")
-    .int32("startRank")
-    .choice({
-        tag: "startRank",
-        choices: {
-            "-1": Parser.start(),
-        },
-        defaultChoice: Parser.start()
-            .endianness("little")
-            .int32("endRank")
-            .int32("startValue")
-            .int32("endValue"),
-    });
-
-const levelBucketsParser = Parser.start()
-    .endianness("little")
+    .uint16("length")
     .string("id", {
         encoding: "utf8",
-        length: 5,
+        length: "length",
     })
-    .array("any", {
-        type: bucketParser,
-        length: 100,
-    })
-    .array("unbroken", {
-        type: bucketParser,
-        length: 100,
-    });
+    .int32("bucketIndex", { formatter: (item) => item - 1 })
+    .nest("any", { type: typeParser })
+    .nest("unbroken", { type: typeParser })
+    .nest("stress", { type: typeParser });
 
-const campaignBucketsParser = Parser.start()
-    .endianness("little")
-    .array("levelBuckets", {
-        type: levelBucketsParser,
-        readUntil: function (item, buffer) {
-            return buffer.readUInt8() == 10;
-        },
-    });
+const levelBucketsParser = Parser.start().endianness("little").array("buckets", {
+    type: bucketParser,
+    readUntil: "eof",
+});
 
 export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
     8 * 60 * 60 * 1000,
     "collated.json",
-    "manifests/leaderboards/buckets/collated.bin",
+    "buckets/campaign.bin",
     {},
     async (remote) => {
         const buf = Buffer.from(remote);
-        const parsed = campaignBucketsParser.parse(buf);
+        const parsed = levelBucketsParser.parse(buf);
         let levels: CampaignBuckets = {};
-        for (const level of parsed.levelBuckets) {
-            levels[level.id] = {
-                any: level.any.map((item: any) => (item.startRank == -1 ? null : item)),
-                unbroken: level.unbroken.map((item: any) => (item.startRank == -1 ? null : item)),
-            };
+        // TODO: destructure properly
+        for (const bucket of parsed.buckets) {
+            if (!levels[bucket.id]) {
+                levels[bucket.id] = {
+                    any: LevelBucketCreate(),
+                    unbroken: LevelBucketCreate(),
+                    stress: LevelBucketCreate(),
+                };
+            }
+            const buckets = levels[bucket.id];
+            if (bucket.bucketIndex >= 0 && bucket.bucketIndex < BUCKETS_PER_ARRAY && buckets) {
+                const n = bucket.bucketIndex;
+                buckets.any.start[n] = bucket.any.start;
+                buckets.any.end[n] = bucket.any.end;
+                buckets.any.count[n] = bucket.any.count;
+                buckets.unbroken.start[n] = bucket.unbroken.start;
+                buckets.unbroken.end[n] = bucket.unbroken.end;
+                buckets.unbroken.count[n] = bucket.unbroken.count;
+                buckets.stress.start[n] = bucket.stress.start;
+                buckets.stress.end[n] = bucket.stress.end;
+                buckets.stress.count[n] = bucket.stress.count;
+            }
         }
         return levels;
     },

@@ -32,8 +32,9 @@ export default new Command({
         const attachment = new AttachmentBuilder(
             Buffer.from(
                 JSON.stringify({
-                    any: { top_history: level.getHistory(false) },
-                    unbroken: { top_history: level.getHistory(true) },
+                    any: { top_history: level.getHistory("any") },
+                    unbroken: { top_history: level.getHistory("unbroken") },
+                    stress: { top_history: level.getHistory("stress") },
                 })
             )
         ).setName(`${level.compactName()}.json`);

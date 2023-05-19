@@ -26,11 +26,10 @@
     "scripts": {
         "build": "tsc --build",
         "bot": "npm run build && node dist/src/bot/Index.js",
-        "bot:dev": "ts-node-dev src/bot/Index.ts",
+        "bot:dev": "ts-node-dev --files src/bot/Index.ts",
         "steam": "ts-node-dev --files src/SteamTest.ts",
         "cache": "ts-node-dev --files src/TestCache.ts",
-        "run": "ts-node-dev src/Test.ts",
-        "migrate": "ts-node-dev src/utils/Migrate.ts",
+        "run": "ts-node-dev --files src/Test.ts",
         "test": "ts-mocha --type-check -p tsconfig.json tests/**/*.test.ts"
     },
     "devDependencies": {

@@ -1,23 +1,17 @@
 import { LevelCode } from "../LevelCode";
 
 export interface WorldFilter {
-    world: number;
-    isChallenge: boolean;
-    isBonus: boolean;
+    world: string;
 }
 
-const WORLD_FILTER_REGEX = /([Bb]?)(\d+)([Cc]?)/;
+const WORLD_FILTER_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT)/i;
 
 export function parseWorldFilter(filter: string): WorldFilter | null {
-    filter = filter.toLowerCase().trimStart().trimEnd();
+    filter = filter.toUpperCase().trimStart().trimEnd();
     let match = filter.match(WORLD_FILTER_REGEX);
     if (!match) return null;
-    let isBonus = match[1].length == 1;
-    let world = parseInt(match[2]);
-    let isChallenge = match[3].length == 1;
-
-    if (isNaN(world)) return null;
-    return { world, isChallenge, isBonus };
+    let world = match[1];
+    return { world };
 }
 
 export function parseManyWorldFilters(filters: string): WorldFilter[] {
@@ -28,11 +22,7 @@ export function parseManyWorldFilters(filters: string): WorldFilter[] {
 }
 
 export function codeMatchesWorldFilter(code: LevelCode, filter: WorldFilter): boolean {
-    return (
-        code.world === filter.world &&
-        code.isChallenge === filter.isChallenge &&
-        code.isBonus === filter.isBonus
-    );
+    return code.world === filter.world;
 }
 
 export function codeMatchesWorldFilters(code: LevelCode, filters: WorldFilter[]): boolean {
@@ -46,7 +36,7 @@ export function codeMatchesWorldFilters(code: LevelCode, filters: WorldFilter[])
 }
 
 export function formatWorldFilter(filter: WorldFilter) {
-    return `${filter.isBonus ? "B" : ""}${filter.world}${filter.isChallenge ? "c" : ""}`;
+    return `${filter.world}`;
 }
 
 export function formatManyWorldFilters(filters: WorldFilter[]) {

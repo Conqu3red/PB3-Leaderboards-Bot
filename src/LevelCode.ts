@@ -14,7 +14,7 @@ export function parseLevelCode(code: string): LevelCode | null {
     if (isNaN(level)) return null;
 
     return {
-        world,
+        world: world.toUpperCase(),
         level,
     };
 }

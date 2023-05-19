@@ -1,4 +1,4 @@
-import { Leaderboard } from "../../../LeaderboardInterface";
+import { Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
 import { encodeLevelCode, LevelCode, parseLevelCode } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
@@ -14,9 +14,10 @@ import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "disc
 import { getRecent, RecentEntry, renderRecent } from "../../../Recent";
 import { UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
+import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
 interface LeaderboardOptions {
-    unbroken: boolean;
+    type: LeaderboardType;
 }
 
 interface Data {
@@ -43,20 +44,16 @@ class PagedLeaderboard extends PagedResponder {
             embeds: [
                 {
                     title: `Most recent top scores in the top ${OLDEST_RANK_LIMIT}${
-                        this.data.options.unbroken ? " (unbroken)" : ""
+                        this.data.options.type !== "any" ? ` (${this.data.options.type})` : ""
                     }`,
-                    color: 0x3586ff,
                     image: {
                         url: `attachment://${uuid}.png`,
                     },
                     footer: {
                         text: `Page ${this.page + 1}/${this.pageCount}`,
                     },
-                    author: {
-                        name: "PB2 Leaderboards Bot",
-                        icon_url:
-                            "https://cdn.discordapp.com/app-assets/720364938908008568/758752385244987423.png",
-                    },
+                    color: EMBED_COLOR,
+                    author: EMBED_AUTHOR,
                 },
             ],
             components: [arrowComponents],
@@ -76,10 +73,15 @@ export default new Command({
                 .setDescription("Level identifier to display leaderboard for")
                 .setRequired(false)
         )
-        .addBooleanOption((option) =>
+        .addStringOption((option) =>
             option
-                .setName("unbroken")
-                .setDescription("Show leaderboard for scores that didn't break")
+                .setName("type")
+                .setDescription("Leaderboard type to display")
+                .setChoices(
+                    { name: "any", value: "any" },
+                    { name: "unbreaking", value: "unbreaking" },
+                    { name: "stress", value: "stress" }
+                )
                 .setRequired(false)
         )
         .addStringOption((option) =>
@@ -89,7 +91,7 @@ export default new Command({
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const levelCode = args.getString("level", false);
-        const unbroken = args.getBoolean("unbroken", false) ?? false;
+        const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false) ?? undefined;
 
         let userFilter: UserFilter | null = null;
@@ -102,11 +104,11 @@ export default new Command({
         }
 
         const paged = new PagedLeaderboard(client, interaction, {
-            board: await getRecent(unbroken ? "unbroken" : "any", {
+            board: await getRecent(type, {
                 levelCode: levelCode ? parseLevelCode(levelCode) ?? undefined : undefined,
                 userFilter: userFilter ?? undefined,
             }),
-            options: { unbroken },
+            options: { type },
         });
         await paged.start();
     },

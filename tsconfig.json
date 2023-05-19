@@ -14,7 +14,9 @@
         "skipDefaultLibCheck": true,
         "resolveJsonModule": true,
         "importHelpers": true,
-        "strict": true
+        "strict": true,
+        "declaration": true,
+        "declarationDir": ".dist/types"
     },
     "include": ["src", "environment.d.ts"],
     "exclude": ["node_modules", "**/*.spec.ts"],

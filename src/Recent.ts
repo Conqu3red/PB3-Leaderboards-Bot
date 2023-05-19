@@ -3,11 +3,11 @@ import { CanvasTable, CTColumn, CTConfig, CTData } from "canvas-table";
 import { User } from "discord.js";
 import { DateTime } from "luxon";
 import { N_ENTRIES } from "./Consts";
-import { selectLeaderboard } from "./GlobalLeaderboard";
 import { LeaderboardType, OldestEntry } from "./LeaderboardInterface";
 import { LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
 import { matchesUserFilter, UserFilter } from "./utils/userFilter";
+import SteamUsernames from "./resources/SteamUsernameHandler";
 
 export interface RecentEntry extends OldestEntry {
     compactName: string;
@@ -27,13 +27,14 @@ export async function getRecent(
     for (const level of cacheManager.campaignManager.campaignLevels) {
         if (filters.levelCode && !levelCodeEqual(level.info.code, filters.levelCode)) continue;
 
-        const history = level.getHistory(type === "unbroken");
+        const history = level.getHistory(type);
         entries = entries.concat(
             history
                 .filter(
                     (entry) =>
                         !entry.cheated &&
-                        (!filters.userFilter || matchesUserFilter(filters.userFilter, entry.owner))
+                        (!filters.userFilter ||
+                            matchesUserFilter(filters.userFilter, entry.steam_id_user))
                 )
                 .map((entry) => {
                     return { ...entry, compactName: level.compactName() };
@@ -73,7 +74,7 @@ export async function renderRecentCanvas(board: RecentEntry[], index: number): P
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
         entry.compactName,
-        entry.owner.display_name,
+        SteamUsernames.get(entry.steam_id_user),
         DateTime.fromSeconds(entry.time).toRelative({
             base: now,
             style: "short",

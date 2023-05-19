@@ -2,7 +2,6 @@ import { Canvas, createCanvas } from "canvas";
 import { CanvasTable, CTColumn, CTConfig, CTData } from "canvas-table";
 import { DateTime } from "luxon";
 import { N_ENTRIES } from "./Consts";
-import { selectLeaderboard } from "./GlobalLeaderboard";
 import {
     Leaderboard,
     LeaderboardEntry,
@@ -12,6 +11,7 @@ import {
 import { encodeLevelCode, LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
 import { matchesUserFilter, UserFilter } from "./utils/userFilter";
+import SteamUsernames from "./resources/SteamUsernameHandler";
 
 export function groupBy<T, R>(arr: T[], prop: (obj: T) => R): Map<R, T[]> {
     const map: Map<R, T[]> = new Map();
@@ -56,7 +56,7 @@ export function getTopUserStreaks(history: OldestEntry[]): UserStreakTracker[] |
         for (const score of scores) {
             if (score.score > lowestScore) continue;
 
-            let user = topUsers.get(score.owner.id);
+            let user = topUsers.get(score.steam_id_user);
             if (user) {
                 // update with their newest score
                 user.latestScore = score;
@@ -68,7 +68,7 @@ export function getTopUserStreaks(history: OldestEntry[]): UserStreakTracker[] |
                     firstToGetThisScore: false,
                 };
             }
-            topUsers.set(score.owner.id, user);
+            topUsers.set(score.steam_id_user, user);
         }
 
         // remove top users that no longer meet the top score
@@ -119,7 +119,7 @@ export async function getOldest(
 
     for (const level of cacheManager.campaignManager.campaignLevels) {
         if (filters.levelCode && !levelCodeEqual(level.info.code, filters.levelCode)) continue;
-        const history = level.getHistory(type === "unbroken");
+        const history = level.getHistory(type);
         const trackers = getTopUserStreaks(history) ?? [];
         const code = encodeLevelCode(level.info.code);
 
@@ -131,7 +131,7 @@ export async function getOldest(
                 .filter(
                     (entry) =>
                         !filters.userFilter ||
-                        matchesUserFilter(filters.userFilter, entry.latestScore.owner)
+                        matchesUserFilter(filters.userFilter, entry.latestScore.steam_id_user)
                 )
         );
 
@@ -176,7 +176,7 @@ export async function renderOldestCanvas(
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
         entry.compactName,
-        entry.latestScore.owner.display_name,
+        SteamUsernames.get(entry.latestScore.steam_id_user),
         DateTime.fromSeconds(entry.initialTime).toRelative({
             base: now,
             style: "short",

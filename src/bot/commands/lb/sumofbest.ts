@@ -1,4 +1,4 @@
-import { Leaderboard } from "../../../LeaderboardInterface";
+import { Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
 import { encodeLevelCode, LevelCode } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
@@ -20,28 +20,35 @@ import {
     parseManyWorldFilters,
     WorldFilter,
 } from "../../../utils/WorldFilter";
+import { FormatScore } from "../../../utils/Format";
+import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
 export default new Command({
     command: new SlashCommandBuilder()
         .setName("sumofbest")
         .setDescription("Shows the sum of best scores")
         .setDMPermission(false)
-        .addBooleanOption((option) =>
+        .addStringOption((option) =>
             option
-                .setName("unbroken")
-                .setDescription("Show leaderboard for scores that didn't break")
+                .setName("type")
+                .setDescription("Leaderboard type to display")
+                .setChoices(
+                    { name: "any", value: "any" },
+                    { name: "unbreaking", value: "unbreaking" },
+                    { name: "stress", value: "stress" }
+                )
                 .setRequired(false)
         )
         .addStringOption((option) =>
             option
                 .setName("world")
-                .setDescription("Display for specific world(s): 1 - 6, 1c - 6c, B1, B2")
+                .setDescription("Display for specific world(s)")
                 .setRequired(false)
         )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
-        const unbroken = args.getBoolean("unbroken", false) ?? false;
+        const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const world = args.getString("world", false);
 
         let worldFilters: WorldFilter[] = [];
@@ -53,27 +60,21 @@ export default new Command({
             }
         }
 
-        const sumsOfBest = await sumOfBest(unbroken ? "unbroken" : "any", worldFilters);
+        const sumsOfBest = await sumOfBest(type, worldFilters);
 
         const worlds = `World: ${formatManyWorldFilters(worldFilters)}`;
 
         await interaction.editReply({
             embeds: [
                 {
-                    title: `Sum of best${unbroken ? " (unbroken)" : ""} ${
+                    title: `Sum of best${type !== "any" ? ` (${type})` : ""} ${
                         worldFilters.length > 0 ? worlds : ""
                     }`,
-                    description:
-                        `Overall: \`$${sumsOfBest.overall.toLocaleString("en-US")}\`\n` +
-                        `Regular: \`$${sumsOfBest.regular.toLocaleString("en-US")}\`\n` +
-                        `Challenge: \`$${sumsOfBest.challenge.toLocaleString("en-US")}\`\n` +
-                        `Bonus: \`$${sumsOfBest.bonus.toLocaleString("en-US")}\`\n`,
-                    color: 0x3586ff,
-                    author: {
-                        name: "PB2 Leaderboards Bot",
-                        icon_url:
-                            "https://cdn.discordapp.com/app-assets/720364938908008568/758752385244987423.png",
-                    },
+                    description: `Aggregated from \`${
+                        sumsOfBest.levelCount
+                    }\` levels.\nOverall: \`${FormatScore(sumsOfBest.overall, type)}\``,
+                    color: EMBED_COLOR,
+                    author: EMBED_AUTHOR,
                 },
             ],
         });
