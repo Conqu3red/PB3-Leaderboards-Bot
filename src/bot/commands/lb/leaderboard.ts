@@ -128,7 +128,7 @@ export default new Command({
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
-        let score = args.getInteger("score", false);
+        let score = args.getNumber("score", false);
         if (type === "stress" && score) score *= 100;
 
         if (!levelCode) {
