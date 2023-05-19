@@ -45,7 +45,10 @@ export class ExtendedClient extends Client {
         });
         commandFiles.forEach(async (filePath) => {
             const command: CommandType = await this.importFile(filePath);
-            if (!command.command.name) return;
+            if (!command?.command?.name) {
+                console.log("ERROR: unable to load command:", filePath);
+                return;
+            }
             console.log(`Command: "${command.command.name}" found.`);
             this.commands.set(command.command.name, command);
             slashCommands.push(command.command);
