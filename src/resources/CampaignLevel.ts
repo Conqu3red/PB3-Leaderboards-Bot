@@ -14,8 +14,6 @@ export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
         return this.info.id;
     }
 
-    // TODO async reload();
-
     remotePath(): string {
         return `manifests/leaderboards/scores/${this.info.id}.json`;
     }

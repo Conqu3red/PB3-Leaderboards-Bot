@@ -57,7 +57,6 @@ export default new Command({
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         let score = args.getNumber("score", false);
         if (type === "stress" && score) score *= 100;
-        // FIXME: parse xx.xx% as valid options for SCORE param, also accept commas and $.
 
         if (!levelCode) {
             await error(interaction, "Invalid level code.");

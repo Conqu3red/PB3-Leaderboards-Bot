@@ -150,7 +150,6 @@ export default class SteamUsernames {
             for (const player of response.players) {
                 await userDB.put(player.steamid, player.personaname);
                 await userDB.put("t" + player.steamid, updateTime);
-                // TODO: write current time
             }
         });
 
@@ -173,6 +172,5 @@ export default class SteamUsernames {
     }
 
     static ID_RELOAD_INTERVAL = 100 * 60 * 60 * 1000; // 100 hours
-    // FIXME: outdated usernames need to be updated
     // TODO: priority updates for the very highest users
 }

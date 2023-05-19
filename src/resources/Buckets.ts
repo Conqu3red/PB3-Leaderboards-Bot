@@ -55,7 +55,6 @@ export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
         const buf = Buffer.from(remote);
         const parsed = levelBucketsParser.parse(buf);
         let levels: CampaignBuckets = {};
-        // TODO: destructure properly
         for (const bucket of parsed.buckets) {
             if (!levels[bucket.id]) {
                 levels[bucket.id] = {

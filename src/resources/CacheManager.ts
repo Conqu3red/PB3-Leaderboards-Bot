@@ -77,7 +77,6 @@ export class CampaignManager {
                 `[CacheManager] CRITICAL leaderboard id missing: ${level.compactName()} ${boardName} ${leaderboardType}`
             );
             const board = await steamUser.GetLeaderboard(boardName);
-            // FIXME: leaderboard IDs need to be cached and rechecked occasionally?
             id = board.leaderboard_id;
             await database.put("id:" + boardName, id);
         }
@@ -131,7 +130,6 @@ export class CampaignManager {
         const newBoard = CampaignManager.convertSteamData(board);
 
         await database.transaction(async () => {
-            // TODO: change interfaces to match steam, as ID cache
             await level.set(newBoard, leaderboardType);
             await level.setHistory(
                 updateHistoryData(oldBoard, newBoard, level.getHistory(leaderboardType)),
@@ -192,7 +190,6 @@ export class CampaignManager {
 export class CacheManager {
     campaignManager = new CampaignManager();
     steamRateLimit = new RateLimit(CampaignManager.RATELIMIT_MS);
-    // TODO: attach manager for bin collated file?
 
     async maybeReload() {
         await this.campaignManager.maybeReload();

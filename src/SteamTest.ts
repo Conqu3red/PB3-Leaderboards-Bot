@@ -32,7 +32,6 @@ user.on("loggedOn", async (details) => {
     );
     console.log(entryResult);
 
-    // TODO: batch into groups of 100
     let userResult = await LookupUsers(
         api,
         entryResult.entries.map((entry) => entry.steam_id_user),

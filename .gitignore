@@ -6,3 +6,6 @@ score-db/
 *.log
 *.sqlite
 dist
+cellid-*.txt
+cm_list.json
+*.mdb
