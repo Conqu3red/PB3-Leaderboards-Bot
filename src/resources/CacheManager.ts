@@ -1,13 +1,10 @@
-import { RemoteResource } from "./RemoteResource";
-import { weeklyIndex } from "./WeeklyIndex";
-import { WeeklyLevel } from "./WeeklyLevel";
 import { loadCampaignLevelInfos } from "./CampaignIndex";
 import { CampaignLevel } from "./CampaignLevel";
 import { LevelCode, levelCodeEqual, parseLevelCode } from "../LevelCode";
 import { campaignBuckets } from "./Buckets";
 import { asyncSetTimeout } from "../utils/asyncTimeout";
 import { Leaderboard, LeaderboardType } from "../LeaderboardInterface";
-import database, { userDB } from "./Lmdb";
+import { database, userDB } from "./Lmdb";
 import RateLimit from "../utils/RateLimit";
 import SteamUser from "steam-user";
 import { ClientLBSGetLBEntriesResponse } from "../Steam";
@@ -169,21 +166,6 @@ export class CampaignManager {
         if (reload_ids) {
             await database.put("idt:" + level.lmdbKey(), Date.now());
         }
-        /* const any = this.get(false);
-        const anyNew = processRemoteLeaderboard(remote.any);
-        const unbroken = this.get(true);
-        const unbrokenNew = processRemoteLeaderboard(remote.unbroken);
-
-        await database.transaction(async () => {
-            await this.set(anyNew, false);
-            await this.set(unbrokenNew, true);
-
-            await this.setHistory(updateHistoryData(any, anyNew, this.getHistory(false)), false);
-            await this.setHistory(
-                updateHistoryData(unbroken, unbrokenNew, this.getHistory(true)),
-                true
-            );
-        }); */
     }
 }
 

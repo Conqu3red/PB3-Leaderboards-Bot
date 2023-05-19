@@ -4,7 +4,7 @@ import fs from "fs";
 import { RemoteResource } from "./RemoteResource";
 import { parseLevelCode } from "../LevelCode";
 import { encodeLevelCode } from "../LevelCode";
-import database from "./Lmdb";
+import { database } from "./Lmdb";
 
 export abstract class BaseLevel<I> {
     info: I;

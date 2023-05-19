@@ -8,4 +8,3 @@ export const userDB = lmdb.open("user-db", {
     cache: true,
     sharedStructuresKey: Symbol.for("structures"),
 });
-export default database;

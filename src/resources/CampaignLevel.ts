@@ -2,7 +2,7 @@ import { BaseLevel } from "./Level";
 import { CampaignLevelInfo } from "./CampaignIndex";
 import { encodeLevelCode } from "../LevelCode";
 import * as Local from "../LeaderboardInterface";
-import database from "./Lmdb";
+import { database } from "./Lmdb";
 import { updateHistoryData } from "../LeaderboardProcessors";
 import { CampaignManager, cacheManager } from "./CacheManager";
 import { steamUser } from "./SteamUser";

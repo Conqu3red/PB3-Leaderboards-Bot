@@ -1,6 +1,6 @@
 import { WeeklyLevelInfo } from "../LeaderboardInterface";
 import { BaseLevel } from "./Level";
-import database from "./Lmdb";
+import { database } from "./Lmdb";
 
 export class WeeklyLevel extends BaseLevel<WeeklyLevelInfo> {
     lmdbKey(): string {
