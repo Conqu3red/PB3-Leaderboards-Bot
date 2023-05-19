@@ -57,12 +57,12 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     const ctx = canvas.getContext("2d");
 
     ctx.imageSmoothingEnabled = true;
-    ctx.fillStyle = "#1e2124";
+    ctx.fillStyle = "#1C1C1C";
     ctx.fillRect(0, 0, WIDTH + 2 * BORDER, HEIGHT + 2 * GUTTER + 2 * BORDER);
 
-    const GREY_COLORS = ["#171e22", "#22282a"];
-    const OVERBUDGET_COLORS = ["#D22B2B", "#C41E3A"];
-    const UNDERBUDGET_COLORS = ["#32CD32", "#4CBB17"];
+    const GREY_COLORS = ["#1C1C1C", "#212121"];
+    const OVERBUDGET_COLORS = ["#DD453D", "#E55147"];
+    const UNDERBUDGET_COLORS = ["#32B255", "#3DB75D"];
     const GENERIC_COLORS = UNDERBUDGET_COLORS;
 
     const max_fd = Math.max(...hist.map((p) => p.f / (p.endValue - p.startValue)));
@@ -120,9 +120,9 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     } */
 
     // draw quartile markers
-    const QUARTILE_MARKER_HEIGHT = 10;
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 2.5;
+    const QUARTILE_MARKER_HEIGHT = 25;
+    ctx.strokeStyle = "#FCAB0D";
+    ctx.lineWidth = 5;
     ctx.setLineDash([]);
     ctx.lineCap = "round";
     ctx.beginPath();
@@ -139,25 +139,25 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     ctx.closePath();
 
     // Budget text high
-    ctx.font = "20px sans-serif";
+    ctx.font = "25px sans-serif";
     ctx.textAlign = "left";
     ctx.fillStyle = "white";
 
     ctx.fillText(
         `${FormatScore(Math.round(hist[hist.length - 1].endValue), config.type)}`,
         BORDER - 5,
-        GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
+        GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 30
     );
 
     // Budget text low
-    ctx.font = "20px sans-serif";
+    ctx.font = "25px sans-serif";
     ctx.textAlign = "right";
     ctx.fillStyle = "white";
 
     ctx.fillText(
         `${FormatScore(Math.round(hist[0].startValue), config.type)}`,
         BORDER + WIDTH + 5,
-        GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 20
+        GUTTER + BORDER + HEIGHT + 10 + QUARTILE_MARKER_HEIGHT + 30
     );
 
     if (config.userScore !== undefined) {
@@ -165,7 +165,8 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
             hist[0].startValue,
             Math.min(hist[hist.length - 1].endValue, config.userScore)
         );
-        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "#FCAB0D";
         ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.setLineDash([5, 5]);
@@ -182,7 +183,7 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
 
         ctx.font = "20px sans-serif";
         ctx.textAlign = (userScore - hist[0].startValue) / valueRange > 0.5 ? "left" : "right";
-        ctx.fillStyle = "white";
+        ctx.fillStyle = "#FCAB0D";
 
         const line1 = `${FormatScore(Math.round(userScore), config.type)}`;
         const line2 = `Top ${config.userPercentile}%`;

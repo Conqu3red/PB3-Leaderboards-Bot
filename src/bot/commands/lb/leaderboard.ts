@@ -118,8 +118,8 @@ export default new Command({
         .addIntegerOption((option) =>
             option.setName("rank").setDescription("Rank to jump to").setRequired(false)
         )
-        .addIntegerOption((option) =>
-            option.setName("price").setDescription("Price to jump to").setRequired(false)
+        .addNumberOption((option) =>
+            option.setName("score").setDescription("Score to jump to").setRequired(false)
         )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
@@ -128,7 +128,8 @@ export default new Command({
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
-        const price = args.getInteger("price", false);
+        let score = args.getInteger("score", false);
+        if (type === "stress" && score) score *= 100;
 
         if (!levelCode) {
             await error(interaction, "Invalid level code.");
@@ -154,7 +155,7 @@ export default new Command({
         const paged = new PagedLeaderboard(client, interaction, {
             level,
             board,
-            options: { type, userFilter, rank, price },
+            options: { type, userFilter, rank, price: score },
             updateTime: level.lastReloadTimeMs,
         });
         await paged.start();

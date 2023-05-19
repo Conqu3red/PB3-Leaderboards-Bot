@@ -1,6 +1,6 @@
 import { APIEmbedAuthor } from "discord.js";
 
-export const EMBED_COLOR = 0x3586ff;
+export const EMBED_COLOR = 0xfcab0d; /* 0x3586ff */
 
 export const BOT_NAME = "PB3 Leaderboards Bot";
 

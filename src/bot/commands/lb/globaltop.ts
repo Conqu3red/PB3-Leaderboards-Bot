@@ -124,7 +124,7 @@ export default new Command({
         .addIntegerOption((option) =>
             option.setName("rank").setDescription("Rank to jump to").setRequired(false)
         )
-        .addIntegerOption((option) =>
+        .addNumberOption((option) =>
             option.setName("score").setDescription("Score to jump to").setRequired(false)
         )
         .addStringOption((option) =>
@@ -139,8 +139,10 @@ export default new Command({
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
-        const score = args.getInteger("score", false);
+        let score = args.getNumber("score", false);
         const world = args.getString("world", false);
+
+        if (type === "stress" && score) score *= 100;
 
         let worldFilters: WorldFilter[] = [];
         if (world) {
