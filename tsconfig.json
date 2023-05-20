@@ -16,7 +16,7 @@
         "importHelpers": true,
         "strict": true,
         "declaration": true,
-        "declarationDir": ".dist/types"
+        "declarationDir": "dist/types"
     },
     "include": ["src", "environment.d.ts"],
     "exclude": ["node_modules", "**/*.spec.ts"],

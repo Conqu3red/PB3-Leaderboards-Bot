@@ -3,4 +3,4 @@ import { ExpandedSteamUser } from "../Steam";
 
 export const steamAPI = new SteamWebAPI();
 
-export const steamUser = new ExpandedSteamUser({ dataDirectory: "." });
+export const steamUser = new ExpandedSteamUser({ dataDirectory: ".", autoRelogin: true });

@@ -7,6 +7,7 @@ import User from "./models/User";
 import SteamWebAPI from "@doctormckay/steam-webapi";
 import { ExpandedSteamUser } from "../Steam";
 import { steamAPI, steamUser } from "../resources/SteamUser";
+import { EResult } from "steam-user";
 
 require("dotenv").config();
 const { botToken, STEAM_WEBAPI_KEY, STEAM_USERNAME, STEAM_PASSWORD } = process.env;
@@ -40,10 +41,19 @@ steamUser.logOn({
     password: STEAM_PASSWORD,
 });
 
+let isRunning = false;
+
 steamUser.on("loggedOn", async (details) => {
     console.log("[Steam] logged in to steam.");
     // FIXME: steam relogin, handle offline properly
 
-    bot.start();
-    await Promise.all([cacheManager.backgroundUpdate(), cacheManager.nameUpdate()]);
+    if (!isRunning) {
+        isRunning = true;
+        bot.start();
+        await Promise.all([cacheManager.backgroundUpdate(), cacheManager.nameUpdate()]);
+    }
+});
+
+steamUser.on("error", (error) => {
+    console.error(`[Steam] ERR: ${EResult[error.eresult]} ${error}`);
 });

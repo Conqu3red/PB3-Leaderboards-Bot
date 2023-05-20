@@ -1,4 +1,4 @@
-import { LookupUsers } from "../Steam";
+import { LookupUsers, UserLookupResult } from "../Steam";
 import { steamAPI, steamUser } from "./SteamUser";
 import Queue from "../utils/Queue";
 import { userDB } from "./Lmdb";
@@ -6,6 +6,7 @@ import { cacheManager } from "./CacheManager";
 import { LeaderboardType } from "../LeaderboardInterface";
 
 export enum PriorityLevel {
+    RETRY = -1000,
     TOP25 = 0,
     TOP100 = 1,
     TOP250 = 2,
@@ -51,6 +52,7 @@ export class UsernamePriorityBucket {
 
 export default class SteamUsernames {
     static buckets = [
+        new UsernamePriorityBucket(PriorityLevel.RETRY),
         new UsernamePriorityBucket(PriorityLevel.TOP25),
         new UsernamePriorityBucket(PriorityLevel.TOP100),
         new UsernamePriorityBucket(PriorityLevel.TOP250),
@@ -140,9 +142,19 @@ export default class SteamUsernames {
     }
 
     static async reloadBatch(ids: string[]): Promise<boolean> {
-        if (ids.length == 0) return false;
+        if (ids.length == 0) return true;
 
-        const response = await LookupUsers(steamAPI, ids, steamUser.cellID);
+        let response: UserLookupResult;
+        try {
+            response = await LookupUsers(steamAPI, ids, steamUser.cellID);
+        } catch (e) {
+            console.error(`[SteamUsernames] ERR when trying to reload users ${e}`);
+            // push to priority retry queue
+            for (const id of ids) {
+                this.enqueueId(id, PriorityLevel.RETRY);
+            }
+            return false;
+        }
 
         const updateTime = Date.now();
 

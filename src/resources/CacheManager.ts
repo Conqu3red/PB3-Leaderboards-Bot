@@ -7,7 +7,7 @@ import { Leaderboard, LeaderboardType } from "../LeaderboardInterface";
 import { database, userDB } from "./Lmdb";
 import RateLimit from "../utils/RateLimit";
 import SteamUser from "steam-user";
-import { ClientLBSGetLBEntriesResponse } from "../Steam";
+import { ClientLBSFindOrCreateLBResponse, ClientLBSGetLBEntriesResponse } from "../Steam";
 import { updateHistoryData } from "../LeaderboardProcessors";
 import SteamUsernames, { PriorityLevel } from "./SteamUsernameHandler";
 import { steamUser } from "./SteamUser";
@@ -66,25 +66,32 @@ export class CampaignManager {
     async getLeaderboardId(
         level: CampaignLevel,
         leaderboardType: LeaderboardType
-    ): Promise<number> {
+    ): Promise<number | null> {
         const boardName = level.getLeaderboardName(leaderboardType);
         let id: number | undefined = database.get("id:" + boardName);
         if (!id) {
             console.error(
                 `[CacheManager] CRITICAL leaderboard id missing: ${level.compactName()} ${boardName} ${leaderboardType}`
             );
-            const board = await steamUser.GetLeaderboard(boardName);
-            id = board.leaderboard_id;
-            await database.put("id:" + boardName, id);
+            if (!this.reloadId(level, leaderboardType)) return null;
+            id = database.get("id:" + boardName);
+            return id ?? null;
         }
         return id;
     }
 
-    async reloadId(level: CampaignLevel, leaderboardType: LeaderboardType) {
+    async reloadId(level: CampaignLevel, leaderboardType: LeaderboardType): Promise<boolean> {
         const boardName = level.getLeaderboardName(leaderboardType);
-        const board = await steamUser.GetLeaderboard(boardName);
+        let board: ClientLBSFindOrCreateLBResponse;
+        try {
+            board = await steamUser.GetLeaderboard(boardName);
+        } catch (e) {
+            console.error(`[CacheManager] ERR unable to get leaderboard id.`);
+            return false;
+        }
         await database.put("id:" + boardName, board.leaderboard_id);
         console.log(`[CacheManager] reloaded board id ${boardName} ${board.leaderboard_id}`);
+        return true;
     }
 
     static convertSteamData(entries: ClientLBSGetLBEntriesResponse): Leaderboard {
@@ -107,20 +114,40 @@ export class CampaignManager {
     ) {
         if (reloadId) {
             rateLimit.begin();
-            await this.reloadId(level, leaderboardType);
+            const success = await this.reloadId(level, leaderboardType);
             await rateLimit.waitRest();
+            if (!success) {
+                console.error(
+                    `[CacheManager] ERR, unable to reload board ${level.compactName()} (${leaderboardType})`
+                );
+            }
         }
         const id = await this.getLeaderboardId(level, leaderboardType);
+
+        if (id === null) {
+            console.error(
+                `[CacheManager] ERR, unable to reload board - missing ID ${level.compactName()} (${leaderboardType})`
+            );
+            return;
+        }
 
         const oldBoard = level.get(leaderboardType);
 
         rateLimit.begin();
-        const board = await steamUser.GetLeaderboardEntries(
-            id,
-            0,
-            1000,
-            SteamUser.ELeaderboardDataRequest.Global
-        );
+        let board: ClientLBSGetLBEntriesResponse;
+        try {
+            board = await steamUser.GetLeaderboardEntries(
+                id,
+                0,
+                1000,
+                SteamUser.ELeaderboardDataRequest.Global
+            );
+        } catch (e) {
+            console.error(
+                `[CacheManager] ERR, unable to get leaderboard entries ${level.compactName()} (${leaderboardType})`
+            );
+            return;
+        }
 
         await rateLimit.waitRest();
 
@@ -181,7 +208,11 @@ export class CacheManager {
     async nameUpdate() {
         while (true) {
             this.steamRateLimit.begin();
-            const didUpdate = await SteamUsernames.reload();
+            const updateSucess = await SteamUsernames.reload();
+            if (!updateSucess) {
+                console.log("[SteamUsernames] request failed, pausing refresh for 30 seconds...");
+                await asyncSetTimeout(30_000);
+            }
             await this.steamRateLimit.waitRest();
 
             // check background update

@@ -1,47 +1,34 @@
-import { weeklyIndex } from "./resources/WeeklyIndex";
-import { WeeklyLevel } from "./resources/WeeklyLevel";
-import { cacheManager, CampaignManager, WeeklyManager } from "./resources/CacheManager";
+import { cacheManager } from "./resources/CacheManager";
 import { campaignBuckets } from "./resources/Buckets";
 import { configureHttp } from "./resources/ConfigureHttpAgents";
-import { globalLeaderboard, GlobalScoreByBudget } from "./GlobalLeaderboard";
-import { getProfile, scoreCountThresholds } from "./Profile";
+import { globalLeaderboard } from "./GlobalLeaderboard";
+import { getProfile } from "./Profile";
 import { sumOfBest } from "./SumOfBest";
 import { getOldest, getTopUserStreaks, groupBy } from "./Oldest";
-import { TIME_FORMAT } from "./Consts";
 import { DateTime } from "luxon";
-import { renderBoard } from "./TopLeaderboard";
 import { findAllUsersWithUsername } from "./UserFinder";
-import { userMatchesUsername } from "./utils/userFilter";
-import { getAllPercentiles, implyMissingBuckets, getPercentile } from "./Milestones";
-import { renderHistogram, collectBuckets } from "./ScoreDistribution";
-import { Remote } from "./RemoteLeaderboardInterface";
-import database from "./resources/Lmdb";
+import { getPercentile } from "./Milestones";
+import { renderHistogram, collectBuckets, getHistogramBuckets } from "./ScoreDistribution";
+import { database } from "./resources/Lmdb";
 import fs from "fs";
+import SteamUsernames from "./resources/SteamUsernameHandler";
 import { encodeLevelCode } from "./LevelCode";
 
-async function weeklyTest() {
-    console.log(weeklyIndex.lastReloadTimeMs);
-    let latest = await cacheManager.weeklyManager.getLatest();
-
-    console.log(latest);
-}
-
 async function otherStuff() {
-    let level = await cacheManager.campaignManager.getByCode("1-1");
+    let level = await cacheManager.campaignManager.getByCode("CR-01");
     console.log(level);
 
     await campaignBuckets.reload();
     let buckets = await campaignBuckets.get();
-    let levelBuckets = buckets["mAp2V"];
+    let levelBuckets = buckets["001"];
     if (levelBuckets) {
-        console.log(levelBuckets.any[0]);
+        console.log(levelBuckets.any);
     }
 
     console.time("globalBoard");
     let globalBoard = await globalLeaderboard({
         type: "any",
         levelCategory: "all",
-        scoreComputer: "moneyspent",
     });
     console.timeEnd("globalBoard");
 
@@ -49,7 +36,6 @@ async function otherStuff() {
     globalBoard = await globalLeaderboard({
         type: "any",
         levelCategory: "all",
-        scoreComputer: "rank",
     });
     console.timeEnd("globalBoard");
 
@@ -79,41 +65,18 @@ async function otherStuff() {
 async function buckets() {
     let level = await cacheManager.campaignManager.getByCode("1-1");
     await campaignBuckets.reload();
-    let buckets = await campaignBuckets.get();
-    let levelBuckets = buckets["mAp2V"];
-    if (levelBuckets) {
-        const filled = implyMissingBuckets(levelBuckets.any);
-
-        for (let i = 0; i < levelBuckets.any.length; i++) {
-            const b = levelBuckets.any[i];
-            const f = filled[i];
-            console.log(i, b, f);
-        }
-    }
-
-    if (level) {
-        let percentiles = await getAllPercentiles(
-            level,
-            "any",
-            [...Array(99).keys()].map((i) => i + 1)
-        );
-
-        if (percentiles) {
-            console.log("Actual percentiles:");
-            console.log(percentiles.length);
-            for (const p of percentiles) {
-                console.log(p);
-            }
-        }
-    }
+    const buckets = await campaignBuckets.get();
 
     let most: string = "";
     let max = 0;
     for (const l of cacheManager.campaignManager.campaignLevels) {
-        let p = ((await getAllPercentiles(l, "any", [100])) ?? [])[0];
-        if (p.bucket.endValue > max) {
-            max = p.bucket.endValue;
-            most = l.compactName();
+        const b = buckets[l.info.id];
+        if (b) {
+            let p = b.any.end[b.any.end.length - 1];
+            if (p > max) {
+                max = p;
+                most = l.compactName();
+            }
         }
     }
     console.log(`${most}: $${max.toLocaleString("en-US")}`);
@@ -126,7 +89,6 @@ async function main() {
     await otherStuff();
 
     await cacheManager.campaignManager.maybeReload();
-    await cacheManager.weeklyManager.maybeReload();
 
     //await Promise.all(cacheManager.campaignManager.campaignLevels.map((l) => l.reload()));
 
@@ -134,25 +96,25 @@ async function main() {
 
     if (level) {
         console.log("OLDEST 1-1");
-        const history = level.getHistory(false);
+        const history = level.getHistory("any");
         for (const entry of history) {
             if (entry.cheated) {
                 console.log(
                     `   ---- CHEATED ${DateTime.fromSeconds(entry.time).toISODate()} #${
                         entry.rank
-                    } $${entry.score} ${entry.owner.display_name}`
+                    } $${entry.score} ${SteamUsernames.get(entry.steam_id_user)}`
                 );
             } else {
                 console.log(
                     `    ${DateTime.fromSeconds(entry.time).toISODate()} #${entry.rank} $${
                         entry.score
-                    } ${entry.owner.display_name}`
+                    } ${SteamUsernames.get(entry.steam_id_user)}`
                 );
             }
         }
 
         console.time("oldest");
-        let t = getTopUserStreaks(level.getHistory(false));
+        let t = getTopUserStreaks(level.getHistory("any"));
         console.timeEnd("oldest");
         if (t) {
             console.log(t.length);
@@ -161,7 +123,9 @@ async function main() {
                 console.log(
                     `${Math.floor(
                         now.diff(DateTime.fromSeconds(user.initialTime)).as("days")
-                    )}d ago: $${user.latestScore.score} (${user.latestScore.owner.display_name})`
+                    )}d ago: $${user.latestScore.score} (${SteamUsernames.get(
+                        user.latestScore.steam_id_user
+                    )})`
                 );
             }
         } else {
@@ -180,7 +144,7 @@ async function main() {
         console.log(
             `${Math.floor(now.diff(DateTime.fromSeconds(user.initialTime)).as("days"))}d ago: $${
                 user.latestScore.score
-            } (${user.latestScore.owner.display_name})`
+            } (${SteamUsernames.get(user.latestScore.steam_id_user)})`
         );
         break;
     }
@@ -191,51 +155,33 @@ async function main() {
     );
 
     let buckets = await campaignBuckets.get();
-    let level2 = await cacheManager.campaignManager.getByCode("1-10");
+    let level2 = await cacheManager.campaignManager.getByCode("CR-01");
     if (level2) {
-        let levelBuckets = buckets[level2.info.id];
-        if (levelBuckets) {
-            const histogram_buckets = implyMissingBuckets(levelBuckets.any);
-
-            /* for (const b of histogram_buckets) {
-                let f = (b.endRank - b.startRank).toString().padStart(6, " ");
-                let cw = (b.endValue - b.startValue).toString().padStart(6, " ");
-                console.log(
-                    `${f} ${cw} ${b.fd.toFixed(3).padStart(6, " ")} ${"#".repeat(
-                        Math.round(b.fd * 20)
-                    )}`
-                );
-            } */
-
-            const split = collectBuckets(histogram_buckets, 40, level2.info.budget);
-            const max_fd = Math.max(...split.map((s) => s.f / (s.endValue - s.startValue)));
-            for (const x of split) {
-                console.log(
-                    `${(x.endValue - x.startValue).toFixed(3)} ${x.f.toFixed(3)} ${"#".repeat(
-                        Math.round((x.f / (x.endValue - x.startValue) / max_fd) * 20)
-                    )}`
-                );
-            }
-
+        let bucket = buckets[level2.info.id];
+        const split = await getHistogramBuckets(level2, "any");
+        if (split && bucket) {
             const buf = renderHistogram(split, {
                 levelBudget: level2.info.budget,
                 userScore: 26000,
-                userPercentile: getPercentile(26000, histogram_buckets),
+                userPercentile: getPercentile(26000, bucket.any),
+                type: "any",
             });
             fs.writeFileSync(`./test.png`, buf);
         }
     }
 
-    /* for (const level of cacheManager.campaignManager.campaignLevels) {
+    for (const level of cacheManager.campaignManager.campaignLevels) {
         let levelBuckets = buckets[level.info.id];
-        if (levelBuckets) {
-            const histogram_buckets = implyMissingBuckets(levelBuckets.any);
-            const split = collectBuckets(histogram_buckets, 100, level.info.budget);
-
-            const buf = renderHistogram(split, { levelBudget: level.info.budget });
+        const histogram_buckets = await getHistogramBuckets(level, "any");
+        if (levelBuckets && histogram_buckets) {
+            const buf = renderHistogram(histogram_buckets, {
+                levelBudget: level.info.budget,
+                type: "any",
+            });
             fs.writeFileSync(`./distributions/${encodeLevelCode(level.info.code)}.png`, buf);
+            console.log(`-> ./distributions/${encodeLevelCode(level.info.code)}.png`);
         }
-    } */
+    }
 
     //await buckets();
 
