@@ -49,9 +49,13 @@ export function updateHistoryData(
     }
 
     // Push scores below `OLDEST_RANK_LIMIT` that aren't already in the history.
+    let uniqueScores = 0;
+    let prevScore = NaN;
     for (let i = 0; i < leaderboard.top1000.length; i++) {
         let entry = leaderboard.top1000[i];
-        if (entry.rank > OLDEST_RANK_LIMIT) break;
+        if (uniqueScores > OLDEST_RANK_LIMIT) break;
+        if (entry.score !== prevScore) uniqueScores++;
+        prevScore = entry.score;
 
         const users_last_score = latest_history_scores.get(entry.steam_id_user);
         if (

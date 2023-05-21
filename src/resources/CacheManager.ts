@@ -9,7 +9,7 @@ import RateLimit from "../utils/RateLimit";
 import SteamUser from "steam-user";
 import { ClientLBSFindOrCreateLBResponse, ClientLBSGetLBEntriesResponse } from "../Steam";
 import { updateHistoryData } from "../LeaderboardProcessors";
-import SteamUsernames, { PriorityLevel } from "./SteamUsernameHandler";
+import SteamUsernames, { PriorityLevel, UpdateResult } from "./SteamUsernameHandler";
 import { steamUser } from "./SteamUser";
 
 export class CampaignManager {
@@ -46,8 +46,7 @@ export class CampaignManager {
         );
     }
 
-    async getByCode(code: LevelCode | string): Promise<CampaignLevel | null> {
-        await this.maybeReload();
+    getByCode(code: LevelCode | string): CampaignLevel | null {
         let actualCode: LevelCode;
         if (typeof code === "string") {
             let newCode = parseLevelCode(code);
@@ -90,7 +89,7 @@ export class CampaignManager {
             return false;
         }
         await database.put("id:" + boardName, board.leaderboard_id);
-        console.log(`[CacheManager] reloaded board id ${boardName} ${board.leaderboard_id}`);
+        console.log(`[CacheManager] Reloaded board id ${boardName} ${board.leaderboard_id}`);
         return true;
     }
 
@@ -115,12 +114,13 @@ export class CampaignManager {
         if (reloadId) {
             rateLimit.begin();
             const success = await this.reloadId(level, leaderboardType);
-            await rateLimit.waitRest();
             if (!success) {
                 console.error(
                     `[CacheManager] ERR, unable to reload board ${level.compactName()} (${leaderboardType})`
                 );
+                return;
             }
+            await rateLimit.waitRest();
         }
         const id = await this.getLeaderboardId(level, leaderboardType);
 
@@ -149,6 +149,8 @@ export class CampaignManager {
             return;
         }
 
+        console.log(`[CacheManager] Reloaded ${level.compactName()}:${leaderboardType}`);
+
         await rateLimit.waitRest();
 
         const newBoard = CampaignManager.convertSteamData(board);
@@ -160,8 +162,6 @@ export class CampaignManager {
                 leaderboardType
             );
         });
-
-        console.log(`[CacheManager] Reloaded ${level.compactName()}:${leaderboardType}`);
 
         for (const score of newBoard.top1000) {
             if (score.rank <= 25)
@@ -208,12 +208,15 @@ export class CacheManager {
     async nameUpdate() {
         while (true) {
             this.steamRateLimit.begin();
-            const updateSucess = await SteamUsernames.reload();
-            if (!updateSucess) {
+            const updateResult = await SteamUsernames.reload();
+            if (updateResult === UpdateResult.FAILED) {
                 console.log("[SteamUsernames] request failed, pausing refresh for 30 seconds...");
                 await asyncSetTimeout(30_000);
+            } else if (updateResult === UpdateResult.SUCCESS) {
+                await this.steamRateLimit.waitRest();
+            } else {
+                await asyncSetTimeout(2500);
             }
-            await this.steamRateLimit.waitRest();
 
             // check background update
             const last_refresh: number | undefined = userDB.get("_refresh");

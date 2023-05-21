@@ -13,14 +13,14 @@ export abstract class BaseLevel<I> {
     constructor(info: I) {
         this.info = info;
 
-        this.lastReloadTimeMs = database.get(`${this.lmdbKey()}:last_reload`) ?? 0;
+        this.lastReloadTimeMs = database.get(`lbt:${this.lmdbKey()}`) ?? 0;
     }
 
     get(leaderboardType: LeaderboardType): Leaderboard {
         const board: Leaderboard | undefined = database.get(this.lmdbKeyBoard(leaderboardType));
         if (!board) {
-            if (database.get(`${this.lmdbKey()}:last_reload`)) {
-                database.removeSync(`${this.lmdbKey()}:last_reload`);
+            if (database.get(`lbt:${this.lmdbKey()}`)) {
+                database.removeSync(`lbt:${this.lmdbKey()}`);
                 this.lastReloadTimeMs = 0;
             }
         }
@@ -28,7 +28,7 @@ export abstract class BaseLevel<I> {
     }
 
     async set(board: Leaderboard, leaderboardType: LeaderboardType) {
-        await database.put(`${this.lmdbKey()}:last_reload`, this.lastReloadTimeMs);
+        await database.put(`lbt:${this.lmdbKey()}`, this.lastReloadTimeMs);
         await database.put(this.lmdbKeyBoard(leaderboardType), board);
     }
 

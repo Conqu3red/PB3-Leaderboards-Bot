@@ -124,7 +124,7 @@ export function renderHistogram(hist: HistogramBucket[], config: RenderConfig) {
     ctx.strokeStyle = "#FCAB0D";
     ctx.lineWidth = 5;
     ctx.setLineDash([]);
-    ctx.lineCap = "round";
+    ctx.lineCap = "square";
     ctx.beginPath();
 
     ctx.moveTo(BORDER, GUTTER + BORDER + HEIGHT + 10);

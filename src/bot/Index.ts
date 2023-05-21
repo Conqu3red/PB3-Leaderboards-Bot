@@ -50,7 +50,7 @@ steamUser.on("loggedOn", async (details) => {
     if (!isRunning) {
         isRunning = true;
         bot.start();
-        await Promise.all([cacheManager.backgroundUpdate(), cacheManager.nameUpdate()]);
+        Promise.all([cacheManager.backgroundUpdate(), cacheManager.nameUpdate()]);
     }
 });
 

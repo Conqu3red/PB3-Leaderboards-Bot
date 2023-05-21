@@ -106,7 +106,7 @@ export async function renderGlobal(
         { title: "#", options: { color: "#ffffff", textAlign: "right" } },
         { title: "Name", options: { color: "#ffffff", maxWidth: 150 } },
         {
-            title: "Spent",
+            title: options.type === "stress" ? "Stress" : "Spent",
             options: { color: "#ffffff", textAlign: "right" },
         },
     ];

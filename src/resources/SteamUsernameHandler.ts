@@ -14,6 +14,12 @@ export enum PriorityLevel {
     REFRESH = 4,
 }
 
+export enum UpdateResult {
+    SUCCESS,
+    EMPTY,
+    FAILED,
+}
+
 export class UsernamePriorityBucket {
     idsQueued: Set<string> = new Set();
     idQueue: Queue<string> = new Queue();
@@ -125,7 +131,7 @@ export default class SteamUsernames {
         }
     }
 
-    static async reload(): Promise<boolean> {
+    static async reload(): Promise<UpdateResult> {
         let ids: string[] = [];
         for (const level of this.buckets) {
             if (level.idsQueued.size > 0) {
@@ -141,8 +147,8 @@ export default class SteamUsernames {
         return await this.reloadBatch(ids);
     }
 
-    static async reloadBatch(ids: string[]): Promise<boolean> {
-        if (ids.length == 0) return true;
+    static async reloadBatch(ids: string[]): Promise<UpdateResult> {
+        if (ids.length == 0) return UpdateResult.EMPTY;
 
         let response: UserLookupResult;
         try {
@@ -153,7 +159,7 @@ export default class SteamUsernames {
             for (const id of ids) {
                 this.enqueueId(id, PriorityLevel.RETRY);
             }
-            return false;
+            return UpdateResult.FAILED;
         }
 
         const updateTime = Date.now();
@@ -167,7 +173,7 @@ export default class SteamUsernames {
 
         console.log(`[SteamUsernames] loaded ${ids.length} IDs.`);
 
-        return true;
+        return UpdateResult.SUCCESS;
     }
 
     static get(steam_id: string): string {
