@@ -41,7 +41,7 @@ async function collateBoards(
     const startScore =
         options.type === "stress"
             ? levels.length * 10_000
-            : levels.reduce((a, b) => a + b.info.budget, 0);
+            : levels.reduce((a, b) => a + b.info.budget, 0) * 2;
 
     for (const level of levels) {
         const board = level.get(options.type);
@@ -53,7 +53,9 @@ async function collateBoards(
             };
 
             entry.value -=
-                options.type === "stress" ? 10_000 - score.score : level.info.budget - score.score;
+                options.type === "stress"
+                    ? 10_000 - score.score
+                    : level.info.budget * 2 - score.score;
             userScores.set(score.steam_id_user, entry);
         }
     }

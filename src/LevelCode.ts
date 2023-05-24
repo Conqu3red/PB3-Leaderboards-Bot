@@ -3,7 +3,7 @@ export interface LevelCode {
     level: number;
 }
 
-export const LEVEL_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT)-(\d+)/i;
+export const LEVEL_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT|AT|FR)-(\d+)/i;
 
 export function parseLevelCode(code: string): LevelCode | null {
     let match = code.match(LEVEL_REGEX);
@@ -25,4 +25,8 @@ export function levelCodeEqual(code: LevelCode, other: LevelCode): boolean {
 
 export function encodeLevelCode(code: LevelCode): string {
     return `${code.world}-${code.level.toString().padStart(2, "0")}`;
+}
+
+export function isSecretWord(code: LevelCode): boolean {
+    return code.world === "FR";
 }

@@ -4,7 +4,7 @@ export interface WorldFilter {
     world: string;
 }
 
-const WORLD_FILTER_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT)/i;
+const WORLD_FILTER_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT|AT|FR)/i;
 
 export function parseWorldFilter(filter: string): WorldFilter | null {
     filter = filter.toUpperCase().trimStart().trimEnd();

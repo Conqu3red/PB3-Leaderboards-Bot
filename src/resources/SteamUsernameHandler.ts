@@ -98,6 +98,7 @@ export default class SteamUsernames {
         let count = 0;
 
         for (const { key } of toUpdate) {
+            count++;
             this.enqueueId(key, PriorityLevel.REFRESH);
         }
 
