@@ -16,7 +16,7 @@ export function parseWorldFilter(filter: string): WorldFilter | null {
 
 export function parseManyWorldFilters(filters: string): WorldFilter[] {
     return filters
-        .split(",")
+        .split(/[\s,]+/)
         .map((s) => parseWorldFilter(s))
         .filter((s) => s !== null) as WorldFilter[];
 }

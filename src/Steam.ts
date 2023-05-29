@@ -98,7 +98,6 @@ export class ExpandedSteamUser extends SteamUser {
                     );
 
                     if (result.eresult != SteamUser.EResult.OK) {
-                        console.log(Helpers.eresultError(result.eresult));
                         reject(Helpers.eresultError(result.eresult));
                     }
 
@@ -137,7 +136,6 @@ export class ExpandedSteamUser extends SteamUser {
                         body
                     );
                     if (result.eresult != SteamUser.EResult.OK) {
-                        console.log(Helpers.eresultError(result.eresult));
                         reject(Helpers.eresultError(result.eresult));
                     }
 
