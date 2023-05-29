@@ -73,7 +73,7 @@ export default new Command({
         const levelBuckets = allBuckets[level.info.id];
 
         if (!levelBuckets) {
-            await error(interaction, "Note enough data to create histogram.");
+            await error(interaction, "Not enough data to create histogram.");
             return;
         }
 
