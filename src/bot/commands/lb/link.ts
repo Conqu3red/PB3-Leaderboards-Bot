@@ -30,7 +30,7 @@ export default new Command({
         .addStringOption((option) =>
             option
                 .setName("user")
-                .setDescription("User to link with (begin with @ for an ID)")
+                .setDescription("User to link with (begin with @ for a Steam ID)")
                 .setRequired(false)
         )
         .addStringOption((option) =>

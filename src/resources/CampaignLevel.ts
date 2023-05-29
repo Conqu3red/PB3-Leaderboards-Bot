@@ -34,8 +34,7 @@ export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
 
     getLeaderboardName(leaderboardType: Local.LeaderboardType) {
         let postfix = "";
-        if (leaderboardType === "unbroken") postfix = "_unbreaking";
-        if (leaderboardType === "stress") postfix = "_stress";
+        if (leaderboardType !== "any") postfix = "_" + leaderboardType;
         return `${this.info.id}${postfix}`;
     }
 }

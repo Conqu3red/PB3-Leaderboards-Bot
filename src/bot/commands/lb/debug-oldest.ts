@@ -33,7 +33,7 @@ export default new Command({
             Buffer.from(
                 JSON.stringify({
                     any: { top_history: level.getHistory("any") },
-                    unbroken: { top_history: level.getHistory("unbroken") },
+                    unbreaking: { top_history: level.getHistory("unbreaking") },
                     stress: { top_history: level.getHistory("stress") },
                 })
             )

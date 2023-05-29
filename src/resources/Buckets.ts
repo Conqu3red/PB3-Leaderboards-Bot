@@ -9,7 +9,7 @@ interface CampaignBuckets {
 
 export interface LevelBuckets {
     any: LevelBucket;
-    unbroken: LevelBucket;
+    unbreaking: LevelBucket;
     stress: LevelBucket;
 }
 
@@ -38,7 +38,7 @@ const bucketParser = Parser.start()
     })
     .int32("bucketIndex", { formatter: (item) => item - 1 })
     .nest("any", { type: typeParser })
-    .nest("unbroken", { type: typeParser })
+    .nest("unbreaking", { type: typeParser })
     .nest("stress", { type: typeParser });
 
 const levelBucketsParser = Parser.start().endianness("little").array("buckets", {
@@ -59,7 +59,7 @@ export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
             if (!levels[bucket.id]) {
                 levels[bucket.id] = {
                     any: LevelBucketCreate(),
-                    unbroken: LevelBucketCreate(),
+                    unbreaking: LevelBucketCreate(),
                     stress: LevelBucketCreate(),
                 };
             }
@@ -69,9 +69,9 @@ export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
                 buckets.any.start[n] = bucket.any.start;
                 buckets.any.end[n] = bucket.any.end;
                 buckets.any.count[n] = bucket.any.count;
-                buckets.unbroken.start[n] = bucket.unbroken.start;
-                buckets.unbroken.end[n] = bucket.unbroken.end;
-                buckets.unbroken.count[n] = bucket.unbroken.count;
+                buckets.unbreaking.start[n] = bucket.unbreaking.start;
+                buckets.unbreaking.end[n] = bucket.unbreaking.end;
+                buckets.unbreaking.count[n] = bucket.unbreaking.count;
                 buckets.stress.start[n] = bucket.stress.start;
                 buckets.stress.end[n] = bucket.stress.end;
                 buckets.stress.count[n] = bucket.stress.count;

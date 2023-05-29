@@ -34,4 +34,4 @@ export interface WeeklyLevelInfo {
     preview: string;
 }
 
-export type LeaderboardType = "any" | "unbroken" | "stress";
+export type LeaderboardType = "any" | "unbreaking" | "stress";

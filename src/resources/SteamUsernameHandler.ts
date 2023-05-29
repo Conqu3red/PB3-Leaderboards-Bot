@@ -107,7 +107,7 @@ export default class SteamUsernames {
 
     static initQueues() {
         for (const level of cacheManager.campaignManager.campaignLevels) {
-            for (const type of ["any", "unbroken", "stress"]) {
+            for (const type of ["any", "unbreaking", "stress"]) {
                 const board = level.get(type as LeaderboardType);
                 for (const score of board.top1000) {
                     const lastReload = this.getReload(score.steam_id_user);

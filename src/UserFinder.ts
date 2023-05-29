@@ -24,7 +24,7 @@ export async function findAllUsersWithUsernameOnLevel(
 
     const userFilter: UserFilter = { by: "display_name", value: username.toLowerCase() };
 
-    for (const type of ["any", "unbroken", "stress"]) {
+    for (const type of ["any", "unbreaking", "stress"]) {
         const board = level.get(type as LeaderboardType);
         for (const entry of board.top1000) {
             if (matchesUserFilter(userFilter, entry.steam_id_user)) {
