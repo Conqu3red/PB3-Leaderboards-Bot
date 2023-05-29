@@ -29,6 +29,9 @@ export async function sumOfBest(
         if (board.top1000.length > 0) {
             sumsOfBest.overall += board.top1000[0].score;
             sumsOfBest.levelCount++;
+        } else {
+            sumsOfBest.overall += type === "stress" ? 10_000 : level.info.budget;
+            sumsOfBest.levelCount++;
         }
     }
 
