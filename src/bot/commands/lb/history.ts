@@ -24,11 +24,59 @@ import { getInterpolatedRank, getPercentile } from "../../../Milestones";
 import { campaignBuckets } from "../../../resources/Buckets";
 import { FormatScore } from "../../../utils/Format";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
+import { PER_PAGE, Timeline, getTimeline, renderTimeline } from "../../../History";
+
+interface Data {
+    timeline: Timeline;
+    level: CampaignLevel;
+    includeTies: boolean;
+    type: LeaderboardType;
+}
+
+class PagedTimeline extends PagedResponder {
+    data: Data;
+    constructor(client: ExtendedClient, interaction: CommandInteraction, data: Data) {
+        let pageCount = Math.ceil(data.timeline.groups.length / PER_PAGE);
+        super(client, interaction, pageCount);
+        this.data = data;
+        this.page = 0;
+    }
+
+    async generateMessage(): Promise<EditMessageType> {
+        let timeline = await renderTimeline(this.data.timeline, this.page, this.data.type);
+        let uuid = uuidv4();
+
+        let attachment = new AttachmentBuilder(timeline).setName(`${uuid}.png`);
+        return {
+            content: "",
+            embeds: [
+                {
+                    title: `Timeline for ${encodeLevelCode(this.data.level.info.code)}: ${
+                        this.data.level.info.name
+                    }${this.data.type !== "any" ? ` (${this.data.type})` : ""}`,
+                    description: `${
+                        this.data.includeTies ? "Includes" : "Excludes"
+                    } events for users tying with the top score but not overtaking it.`,
+                    image: {
+                        url: `attachment://${uuid}.png`,
+                    },
+                    footer: {
+                        text: `Page ${this.page + 1}/${this.pageCount}`,
+                    },
+                    color: EMBED_COLOR,
+                    author: EMBED_AUTHOR,
+                },
+            ],
+            components: [arrowComponents],
+            files: [attachment],
+        };
+    }
+}
 
 export default new Command({
     command: new SlashCommandBuilder()
-        .setName("histogram")
-        .setDescription("Shows the histogram for a leaderboard")
+        .setName("history")
+        .setDescription("Timeline of the top score history for a level")
         .setDMPermission(false)
         .addStringOption((option) =>
             option
@@ -47,16 +95,18 @@ export default new Command({
                 )
                 .setRequired(false)
         )
-        .addNumberOption((option) =>
-            option.setName("score").setDescription("Score to jump to").setRequired(false)
+        .addBooleanOption((option) =>
+            option
+                .setName("include_ties")
+                .setDescription("Include events when a user ties first place (default: false)")
+                .setRequired(false)
         )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const levelCode = parseLevelCode(args.getString("level", true));
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
-        let score = args.getNumber("score", false);
-        if (type === "stress" && score) score *= 100;
+        const includeTies = args.getBoolean("includeTies", false) ?? false;
 
         if (!levelCode) {
             await error(interaction, "Invalid level code.");
@@ -69,53 +119,22 @@ export default new Command({
             return;
         }
 
-        const allBuckets = await campaignBuckets.get();
-        const levelBuckets = allBuckets[level.info.id];
+        const timeline = getTimeline(level, type, includeTies);
 
-        if (!levelBuckets) {
-            await error(interaction, "Note enough data to create histogram.");
+        if (timeline.groups.length === 0) {
+            await error(
+                interaction,
+                "No score history data is available using the parameters specified."
+            );
             return;
         }
 
-        const histogram_groups = collectBuckets(levelBuckets[type]);
-
-        const options: RenderConfig = { levelBudget: level.info.budget, type };
-
-        let additional_description = "";
-        if (score !== null) {
-            options.userScore = score;
-            options.userPercentile = getPercentile(score, levelBuckets[type]);
-            const estimated_rank = getInterpolatedRank(score, levelBuckets[type]);
-            additional_description = `\nA score of \`${FormatScore(
-                score,
-                type
-            )}\` would rank approximately \`#${estimated_rank.toLocaleString("en-US")}\` - Top ${
-                options.userPercentile
-            }%`;
-        }
-
-        const image = await renderHistogram(histogram_groups, options);
-
-        const attachment = new AttachmentBuilder(image).setName(`percentiles.png`);
-
-        await interaction.editReply({
-            embeds: [
-                {
-                    title: `Score Distribution for ${level.compactName()}${
-                        type !== "any" ? ` (${type})` : ""
-                    }`,
-                    description:
-                        `This level has a budget of $${level.info.budget.toLocaleString(
-                            "en-US"
-                        )}.` + additional_description,
-                    image: {
-                        url: "attachment://percentiles.png",
-                    },
-                    color: EMBED_COLOR,
-                    author: EMBED_AUTHOR,
-                },
-            ],
-            files: [attachment],
+        const pagedResponder = new PagedTimeline(client, interaction, {
+            level,
+            timeline,
+            includeTies,
+            type,
         });
+        await pagedResponder.start();
     },
 });
