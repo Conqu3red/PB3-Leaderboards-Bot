@@ -1,5 +1,5 @@
 {
-    "name": "pb2-leaderboards-bot.ts",
+    "name": "pb3-leaderboards-bot.ts",
     "version": "1.0.0",
     "main": "index.js",
     "license": "MIT",
@@ -10,7 +10,7 @@
         "binary-parser": "^2.1.0",
         "canvas": "^2.11.0",
         "canvas-table": "^0.3.0",
-        "discord.js": "^14.3.0",
+        "discord.js": "^14.11.0",
         "dotenv": "^16.0.1",
         "glob": "^8.0.3",
         "lmdb": "^2.7.9",
