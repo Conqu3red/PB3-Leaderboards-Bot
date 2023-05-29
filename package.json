@@ -25,7 +25,7 @@
         "tslib": "^2.4.0"
     },
     "scripts": {
-        "build": "tsc --build --clean",
+        "build": "npx tsc --build",
         "bot": "npm run build && node dist/src/bot/Index.js",
         "bot:dev": "ts-node-dev --files src/bot/Index.ts",
         "steam": "ts-node-dev --files src/SteamTest.ts",
