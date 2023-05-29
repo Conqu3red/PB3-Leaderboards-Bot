@@ -6,14 +6,16 @@ import { asyncSetTimeout } from "../utils/asyncTimeout";
 import { Leaderboard, LeaderboardType } from "../LeaderboardInterface";
 import { database, userDB } from "./Lmdb";
 import RateLimit from "../utils/RateLimit";
-import SteamUser from "steam-user";
+import SteamUser, { EResult } from "steam-user";
 import { ClientLBSFindOrCreateLBResponse, ClientLBSGetLBEntriesResponse } from "../Steam";
 import { updateHistoryData } from "../LeaderboardProcessors";
 import SteamUsernames, { PriorityLevel, UpdateResult } from "./SteamUsernameHandler";
 import { steamUser } from "./SteamUser";
+import fs from "fs";
+import { DATA_DIR } from "../Consts";
 
 export class CampaignManager {
-    static CAMPAIGN_LEVEL_RELOAD_INTERVAL = 8 * 60 * 60 * 1000; // 8 hours
+    static CAMPAIGN_LEVEL_RELOAD_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour
     static RATELIMIT_MS = 1000;
     static ID_RELOAD_INTERVAL = 80 * 60 * 60 * 1000; // 80 hours
     campaignLevels: CampaignLevel[] = [];
@@ -93,6 +95,12 @@ export class CampaignManager {
         return true;
     }
 
+    async invalidateId(level: CampaignLevel, leaderboardType: LeaderboardType) {
+        const boardName = level.getLeaderboardName(leaderboardType);
+        await database.remove("id:" + boardName);
+        await database.remove("idt:" + boardName);
+    }
+
     static convertSteamData(entries: ClientLBSGetLBEntriesResponse): Leaderboard {
         return {
             top1000: entries.entries.map((entry) => ({
@@ -142,10 +150,16 @@ export class CampaignManager {
                 1000,
                 SteamUser.ELeaderboardDataRequest.Global
             );
-        } catch (e) {
+        } catch (e: any) {
             console.error(
                 `[CacheManager] ERR, unable to get leaderboard entries ${level.compactName()} (${leaderboardType})`
             );
+            if (e.eresult !== undefined && e.eresult === EResult.AccessDenied) {
+                this.invalidateId(level, leaderboardType);
+                console.log(
+                    `[CacheManager] Invalidated board ID for ${level.compactName()} (${leaderboardType})`
+                );
+            }
             return;
         }
 
@@ -187,7 +201,7 @@ export class CampaignManager {
         level.lastReloadTimeMs = Date.now();
 
         await this.reloadType(level, "any", reload_ids, rateLimit);
-        await this.reloadType(level, "unbroken", reload_ids, rateLimit);
+        await this.reloadType(level, "unbreaking", reload_ids, rateLimit);
         await this.reloadType(level, "stress", reload_ids, rateLimit);
 
         if (reload_ids) {
@@ -207,22 +221,31 @@ export class CacheManager {
 
     async nameUpdate() {
         while (true) {
-            this.steamRateLimit.begin();
-            const updateResult = await SteamUsernames.reload();
-            if (updateResult === UpdateResult.FAILED) {
-                console.log("[SteamUsernames] request failed, pausing refresh for 30 seconds...");
-                await asyncSetTimeout(30_000);
-            } else if (updateResult === UpdateResult.SUCCESS) {
-                await this.steamRateLimit.waitRest();
-            } else {
-                await asyncSetTimeout(2500);
-            }
+            try {
+                this.steamRateLimit.begin();
+                const updateResult = await SteamUsernames.reload();
+                if (updateResult === UpdateResult.FAILED) {
+                    console.log(
+                        "[SteamUsernames] request failed, pausing refresh for 30 seconds..."
+                    );
+                    await asyncSetTimeout(30_000);
+                } else if (updateResult === UpdateResult.SUCCESS) {
+                    await this.steamRateLimit.waitRest();
+                } else {
+                    await asyncSetTimeout(2500);
+                }
 
-            // check background update
-            const last_refresh: number | undefined = userDB.get("_refresh");
-            if (!last_refresh || Date.now() - last_refresh > SteamUsernames.ID_RELOAD_INTERVAL) {
-                SteamUsernames.pushStale();
-                await userDB.put("_refresh", Date.now());
+                // check background update
+                const last_refresh: number | undefined = userDB.get("_refresh");
+                if (
+                    !last_refresh ||
+                    Date.now() - last_refresh > SteamUsernames.ID_RELOAD_INTERVAL
+                ) {
+                    SteamUsernames.pushStale();
+                    await userDB.put("_refresh", Date.now());
+                }
+            } catch (e: any) {
+                console.error(`[SteamUsernames] ERR: ${e.stack !== undefined ? e.stack : e}`);
             }
         }
     }
@@ -231,16 +254,26 @@ export class CacheManager {
         await this.campaignManager.populate();
         SteamUsernames.initQueues();
 
+        try {
+            await fs.promises.access(DATA_DIR);
+        } catch (error) {
+            await fs.promises.mkdir(DATA_DIR, { recursive: true });
+        }
+
         while (true) {
-            let nextReloadTime = Math.min(
-                await this.campaignManager.timeToNextReload(),
-                await campaignBuckets.timeUntilNextReload()
-            );
+            try {
+                let nextReloadTime = Math.min(
+                    await this.campaignManager.timeToNextReload(),
+                    await campaignBuckets.timeUntilNextReload()
+                );
 
-            console.log(`[CacheManager] Next reload in ${nextReloadTime / 1000}s`);
-            await asyncSetTimeout(nextReloadTime);
+                console.log(`[CacheManager] Next reload in ${nextReloadTime / 1000}s`);
+                await asyncSetTimeout(nextReloadTime);
 
-            await this.maybeReload();
+                await this.maybeReload();
+            } catch (e: any) {
+                console.error(`[CacheManager] ERR: ${e.stack !== undefined ? e.stack : e}`);
+            }
         }
     }
 }
