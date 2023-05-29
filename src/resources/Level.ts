@@ -18,12 +18,6 @@ export abstract class BaseLevel<I> {
 
     get(leaderboardType: LeaderboardType): Leaderboard {
         const board: Leaderboard | undefined = database.get(this.lmdbKeyBoard(leaderboardType));
-        if (!board) {
-            if (database.get(`lbt:${this.lmdbKey()}`)) {
-                database.removeSync(`lbt:${this.lmdbKey()}`);
-                this.lastReloadTimeMs = 0;
-            }
-        }
         return board ?? { top1000: [], leaderboard_entry_count: 0 };
     }
 
