@@ -111,7 +111,8 @@ export class ExpandedSteamUser extends SteamUser {
         leaderboard_id: number,
         range_start: number,
         range_end: number,
-        leaderboard_data_request: SteamUser.ELeaderboardDataRequest
+        leaderboard_data_request: SteamUser.ELeaderboardDataRequest,
+        steamids?: string[]
     ): Promise<ClientLBSGetLBEntriesResponse> {
         return new Promise((resolve, reject) => {
             this.customSend<ClientLBSGetLBEntries>(
@@ -127,7 +128,7 @@ export class ExpandedSteamUser extends SteamUser {
                     range_start,
                     range_end,
                     leaderboard_data_request,
-                    steamids: [],
+                    steamids: steamids ?? [],
                 },
                 Schema.CMsgClientLBSGetLBEntries,
                 (body) => {

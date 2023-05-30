@@ -168,13 +168,16 @@ export class CampaignManager {
         await rateLimit.waitRest();
 
         const newBoard = CampaignManager.convertSteamData(board);
+        const newHistory = await updateHistoryData(
+            id,
+            oldBoard,
+            newBoard,
+            level.getHistory(leaderboardType)
+        );
 
         await database.transaction(async () => {
             await level.set(newBoard, leaderboardType);
-            await level.setHistory(
-                updateHistoryData(oldBoard, newBoard, level.getHistory(leaderboardType)),
-                leaderboardType
-            );
+            await level.setHistory(newHistory, leaderboardType);
         });
 
         for (const score of newBoard.top1000) {
