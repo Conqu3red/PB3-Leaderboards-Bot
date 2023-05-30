@@ -80,38 +80,45 @@ export async function updateHistoryData(
         }
     }
 
-    if (missing_entries.size > 0) {
-        console.log(`There are ${missing_entries.size} missing entries - checking with steam`);
-        const ids = [...missing_entries.keys()];
-        const newScores: Map<string, LBEntry> = new Map();
-        for (let i = 0; i < ids.length; i += 100) {
-            const ratelimit = new RateLimit(CampaignManager.RATELIMIT_MS);
-            ratelimit.begin();
-            const result = await steamUser.GetLeaderboardEntries(
-                id,
-                0,
-                1000,
-                SteamUser.ELeaderboardDataRequest.Users,
-                ids.slice(i, i + 100)
-            );
-            await ratelimit.waitRest();
-            // FIXME: how the hell can error handling be done on this?
-            for (const score of result.entries) {
-                newScores.set(score.steam_id_user, score);
-            }
-        }
-
-        for (const [id, prevScore] of missing_entries) {
-            const newScore = newScores.get(id);
-            if (!newScore || newScore.score > prevScore.score) {
-                console.log(
-                    `Detected removed score of $${prevScore.score} by ${SteamUsernames.get(
-                        prevScore.steam_id_user
-                    )} (User ID: ${prevScore.steam_id_user})`
+    try {
+        if (missing_entries.size > 0) {
+            console.log(`There are ${missing_entries.size} missing entries - checking with steam`);
+            const ids = [...missing_entries.keys()];
+            const newScores: Map<string, LBEntry> = new Map();
+            for (let i = 0; i < ids.length; i += 100) {
+                const ratelimit = new RateLimit(CampaignManager.RATELIMIT_MS);
+                ratelimit.begin();
+                const result = await steamUser.GetLeaderboardEntries(
+                    id,
+                    0,
+                    1000,
+                    SteamUser.ELeaderboardDataRequest.Users,
+                    ids.slice(i, i + 100)
                 );
-                cheated_users.add(prevScore.steam_id_user);
+                await ratelimit.waitRest();
+                // FIXME: how the hell can error handling be done on this?
+                for (const score of result.entries) {
+                    newScores.set(score.steam_id_user, score);
+                }
+            }
+
+            for (const [id, prevScore] of missing_entries) {
+                const newScore = newScores.get(id);
+                if (!newScore || newScore.score > prevScore.score) {
+                    console.log(
+                        `Detected removed score of $${prevScore.score} by ${SteamUsernames.get(
+                            prevScore.steam_id_user
+                        )} (User ID: ${prevScore.steam_id_user})`
+                    );
+                    cheated_users.add(prevScore.steam_id_user);
+                }
             }
         }
+    } catch (e: any) {
+        console.error(
+            `CRITICAL: failed to find missing entries to fix oldest history \n ${e.stack ?? e}`
+        );
+        console.error(`Assuming the scores are fine... this is really not good`);
     }
 
     // Mark cheated scores
