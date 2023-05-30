@@ -56,9 +56,8 @@ class PagedProfileLeaderboard extends PagedResponder {
 
     generateGlobalPositionsPart(): string {
         const p = this.data.profile.stats.globalPositions;
-        const keys: (keyof typeof p)[] = ["all"];
 
-        const formatPart = (name: string, entry: GlobalEntry | null) =>
+        const formatScoreOne = (name: string, entry: GlobalEntry | null) =>
             entry
                 ? `${name}: #${entry.rank.toLocaleString("en-US")} (${FormatScore(
                       entry.value,
@@ -66,7 +65,22 @@ class PagedProfileLeaderboard extends PagedResponder {
                   )})`
                 : ``;
 
-        return keys.map((k) => formatPart(k, p[k])).join("\n");
+        const formatRankOne = (name: string, entry: GlobalEntry | null) =>
+            entry
+                ? `${name}: #${entry.rank.toLocaleString("en-US")} (${entry.value.toLocaleString(
+                      "en-US"
+                  )})`
+                : ``;
+
+        return [
+            formatRankOne("Scored by rank", p.all_rank),
+            formatScoreOne(
+                `Scored by ${
+                    this.data.options.profileOptions.type === "stress" ? "stress" : "budget"
+                }`,
+                p.all_score
+            ),
+        ].join("\n");
     }
 
     generateScoreCountPart(): string {

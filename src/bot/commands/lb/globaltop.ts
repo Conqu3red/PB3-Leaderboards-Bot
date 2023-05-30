@@ -11,6 +11,7 @@ import {
     GlobalOptions,
     LevelCategory,
     renderGlobal,
+    ScoringMode,
 } from "../../../GlobalLeaderboard";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
@@ -86,6 +87,14 @@ class PagedGlobalLeaderboard extends PagedResponder {
             embeds: [
                 {
                     title: `Global Leaderboard ${this.getDetails()}`,
+                    description:
+                        this.data.options.globalOptions.scoringMode === "rank"
+                            ? "Global score calculated by rank."
+                            : `Global score calculated by ${
+                                  this.data.options.globalOptions.type === "stress"
+                                      ? "stress"
+                                      : "budget"
+                              }.`,
                     image: {
                         url: `attachment://${uuid}.png`,
                     },
@@ -133,6 +142,13 @@ export default new Command({
                 .setDescription("Display for specific world(s)")
                 .setRequired(false)
         )
+        .addStringOption((option) =>
+            option
+                .setName("scoring_mode")
+                .setDescription("Calculate based on rank or budget/stress (default: by rank)")
+                .setChoices({ name: "rank", value: "rank" }, { name: "score", value: "score" })
+                .setRequired(false)
+        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
@@ -141,6 +157,7 @@ export default new Command({
         const rank = args.getInteger("rank", false);
         let score = args.getNumber("score", false);
         const world = args.getString("world", false);
+        const scoringMode = (args.getString("scoring_mode", false) ?? "rank") as ScoringMode;
 
         if (type === "stress" && score) score *= 100;
 
@@ -157,6 +174,7 @@ export default new Command({
             type,
             levelCategory: "all",
             worldFilters: worldFilters,
+            scoringMode,
         };
 
         let userFilter: UserFilter | null = null;

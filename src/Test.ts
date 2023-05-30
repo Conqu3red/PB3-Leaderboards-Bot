@@ -29,6 +29,7 @@ async function otherStuff() {
     let globalBoard = await globalLeaderboard({
         type: "any",
         levelCategory: "all",
+        scoringMode: "rank",
     });
     console.timeEnd("globalBoard");
 
@@ -36,6 +37,7 @@ async function otherStuff() {
     globalBoard = await globalLeaderboard({
         type: "any",
         levelCategory: "all",
+        scoringMode: "score",
     });
     console.timeEnd("globalBoard");
 

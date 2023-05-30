@@ -10,7 +10,8 @@ import { matchesUserFilter, UserFilter } from "./utils/userFilter";
 import { FormatScore } from "./utils/Format";
 
 export interface GlobalPositions {
-    all: GlobalEntry | null;
+    all_rank: GlobalEntry | null;
+    all_score: GlobalEntry | null;
     weekly: GlobalEntry | null;
 }
 
@@ -96,10 +97,19 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
     if (!owner) return null;
 
     const globalPositions: GlobalPositions = {
-        all: findUser(
+        all_rank: findUser(
             (await globalLeaderboard({
                 levelCategory: "all",
                 type: options.type,
+                scoringMode: "rank",
+            })) ?? [],
+            owner
+        ),
+        all_score: findUser(
+            (await globalLeaderboard({
+                levelCategory: "all",
+                type: options.type,
+                scoringMode: "score",
             })) ?? [],
             owner
         ),

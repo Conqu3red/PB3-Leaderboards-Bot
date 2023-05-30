@@ -8,8 +8,10 @@ import { N_ENTRIES } from "./Consts";
 import { WorldFilter, codeMatchesWorldFilters } from "./utils/WorldFilter";
 import SteamUsernames from "./resources/SteamUsernameHandler";
 import { FormatScore } from "./utils/Format";
+import rankToScore from "../json/rank_to_score.json";
 
 export type LevelCategory = "all" /* | "weekly"*/;
+export type ScoringMode = "rank" | "score";
 
 const levelFilters = {
     all: (level: CampaignLevel) => true,
@@ -25,12 +27,14 @@ export interface GlobalEntry {
 export interface GlobalOptions {
     type: LeaderboardType;
     levelCategory: LevelCategory;
+    scoringMode: ScoringMode;
     worldFilters?: WorldFilter[];
 }
 
 export const defaultOptions: GlobalOptions = {
     type: "any",
     levelCategory: "all",
+    scoringMode: "rank",
 };
 
 async function collateBoards(
@@ -38,10 +42,15 @@ async function collateBoards(
     options: GlobalOptions
 ): Promise<GlobalEntry[]> {
     let userScores: Map<string, GlobalEntry> = new Map();
-    const startScore =
-        options.type === "stress"
-            ? levels.length * 10_000
-            : levels.reduce((a, b) => a + b.info.budget, 0) * 2;
+    let startScore = 0;
+
+    const isRank = options.scoringMode === "rank";
+    if (isRank) startScore = levels.length * 100;
+    else
+        startScore =
+            options.type === "stress"
+                ? levels.length * 10_000
+                : levels.reduce((a, b) => a + b.info.budget, 0) * 2;
 
     for (const level of levels) {
         const board = level.get(options.type);
@@ -52,10 +61,12 @@ async function collateBoards(
                 rank: NaN,
             };
 
-            entry.value -=
-                options.type === "stress"
-                    ? 10_000 - score.score
-                    : level.info.budget * 2 - score.score;
+            if (isRank) entry.value -= 100 - (rankToScore[score.rank - 1] ?? 100);
+            else
+                entry.value -=
+                    options.type === "stress"
+                        ? 10_000 - score.score
+                        : level.info.budget * 2 - score.score;
             userScores.set(score.steam_id_user, entry);
         }
     }
@@ -104,11 +115,16 @@ export async function renderGlobal(
     options = Object.assign(defaultOptions, options);
     const canvas = createCanvas(300, 350);
 
+    let title = "Score";
+    if (options.scoringMode !== "rank") {
+        title = options.type === "stress" ? "Stress" : "Spent";
+    }
+
     const columns: CTColumn[] = [
         { title: "#", options: { color: "#ffffff", textAlign: "right" } },
         { title: "Name", options: { color: "#ffffff", maxWidth: 150 } },
         {
-            title: options.type === "stress" ? "Stress" : "Spent",
+            title,
             options: { color: "#ffffff", textAlign: "right" },
         },
     ];
@@ -119,7 +135,9 @@ export async function renderGlobal(
     const data: CTData = chosen_entries.map((entry) => [
         entry.rank.toString(),
         SteamUsernames.get(entry.steam_id_user),
-        FormatScore(entry.value, options?.type ?? "any"),
+        options?.scoringMode === "rank"
+            ? entry.value.toLocaleString("en-US")
+            : FormatScore(entry.value, options?.type ?? "any"),
     ]);
 
     // fit: true
