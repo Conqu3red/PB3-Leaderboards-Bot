@@ -1,5 +1,5 @@
 import { Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
-import { encodeLevelCode, LevelCode, parseLevelCode } from "../../../LevelCode";
+import { encodeLevelCode, LevelCode, parseLevelCode, WORLDS } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
 import { renderBoard, renderBoardComparison } from "../../../TopLeaderboard";
@@ -24,13 +24,23 @@ import { getInterpolatedRank, getPercentile } from "../../../Milestones";
 import { campaignBuckets } from "../../../resources/Buckets";
 import { FormatScore } from "../../../utils/Format";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
-import { PER_PAGE, Timeline, getTimeline, renderTimeline } from "../../../History";
+import {
+    PER_PAGE,
+    Timeline,
+    getGlobalTimeline,
+    getSumOfBestTimeline,
+    getTimeline,
+    renderTimeline,
+} from "../../../History";
+import { ScoringMode } from "../../../GlobalLeaderboard";
+import { parseWorldFilter } from "../../../utils/WorldFilter";
 
 interface Data {
     timeline: Timeline;
-    level: CampaignLevel;
     includeTies: boolean;
     type: LeaderboardType;
+    scoringMode: ScoringMode;
+    title: string;
 }
 
 class PagedTimeline extends PagedResponder {
@@ -43,7 +53,12 @@ class PagedTimeline extends PagedResponder {
     }
 
     async generateMessage(): Promise<EditMessageType> {
-        let timeline = await renderTimeline(this.data.timeline, this.page, this.data.type);
+        let timeline = await renderTimeline(
+            this.data.timeline,
+            this.page,
+            this.data.type,
+            this.data.scoringMode
+        );
         let uuid = uuidv4();
 
         let attachment = new AttachmentBuilder(timeline).setName(`${uuid}.png`);
@@ -51,9 +66,7 @@ class PagedTimeline extends PagedResponder {
             content: "",
             embeds: [
                 {
-                    title: `Timeline for ${encodeLevelCode(this.data.level.info.code)}: ${
-                        this.data.level.info.name
-                    }${this.data.type !== "any" ? ` (${this.data.type})` : ""}`,
+                    title: this.data.title,
                     description: `${
                         this.data.includeTies ? "Includes" : "Excludes"
                     } events for users tying with the top score but not overtaking it.`,
@@ -76,50 +89,165 @@ class PagedTimeline extends PagedResponder {
 export default new Command({
     command: new SlashCommandBuilder()
         .setName("history")
-        .setDescription("Timeline of the top score history for a level")
+        .setDescription("View a timeline")
         .setDMPermission(false)
-        .addStringOption((option) =>
-            option
+        .addSubcommand((group) =>
+            group
                 .setName("level")
-                .setDescription("Level identifier to display histogram for")
-                .setRequired(true)
-        )
-        .addStringOption((option) =>
-            option
-                .setName("type")
-                .setDescription("Leaderboard type to display")
-                .setChoices(
-                    { name: "any", value: "any" },
-                    { name: "unbreaking", value: "unbreaking" },
-                    { name: "stress", value: "stress" }
+                .setDescription("Timeline of the top score history for a level")
+                .addStringOption((option) =>
+                    option
+                        .setName("level")
+                        .setDescription("Level identifier to display histogram for")
+                        .setRequired(true)
                 )
-                .setRequired(false)
+                .addStringOption((option) =>
+                    option
+                        .setName("type")
+                        .setDescription("Leaderboard type to display")
+                        .setChoices(
+                            { name: "any", value: "any" },
+                            { name: "unbreaking", value: "unbreaking" },
+                            { name: "stress", value: "stress" }
+                        )
+                        .setRequired(false)
+                )
+                .addBooleanOption((option) =>
+                    option
+                        .setName("include_ties")
+                        .setDescription(
+                            "Include events when a user ties first place (default: false)"
+                        )
+                        .setRequired(false)
+                )
         )
-        .addBooleanOption((option) =>
-            option
-                .setName("include_ties")
-                .setDescription("Include events when a user ties first place (default: false)")
-                .setRequired(false)
+        .addSubcommand((group) =>
+            group
+                .setName("global")
+                .setDescription("Timeline of globaltop")
+                .addStringOption((option) =>
+                    option
+                        .setName("type")
+                        .setDescription("Leaderboard type to display")
+                        .setChoices(
+                            { name: "any", value: "any" },
+                            { name: "unbreaking", value: "unbreaking" },
+                            { name: "stress", value: "stress" }
+                        )
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName("scoring_mode")
+                        .setDescription(
+                            "Calculate based on rank or budget/stress (default: by rank)"
+                        )
+                        .setChoices(
+                            { name: "rank", value: "rank" },
+                            { name: "score", value: "score" }
+                        )
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName("world")
+                        .setDescription("Display for specific world")
+                        .setChoices(...WORLDS.map((w) => ({ name: w, value: w })))
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName("include_ties")
+                        .setDescription(
+                            "Include events when a user ties first place (default: false)"
+                        )
+                        .setRequired(false)
+                )
+        )
+        .addSubcommand((group) =>
+            group
+                .setName("sumofbest")
+                .setDescription("Timeline of sum of best scores")
+                .addStringOption((option) =>
+                    option
+                        .setName("type")
+                        .setDescription("Leaderboard type to display")
+                        .setChoices(
+                            { name: "any", value: "any" },
+                            { name: "unbreaking", value: "unbreaking" },
+                            { name: "stress", value: "stress" }
+                        )
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName("world")
+                        .setDescription("Display for specific world")
+                        .setChoices(...WORLDS.map((w) => ({ name: w, value: w })))
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName("include_ties")
+                        .setDescription(
+                            "Include events when a user ties first place (default: false)"
+                        )
+                        .setRequired(false)
+                )
         )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
-        const levelCode = parseLevelCode(args.getString("level", true));
-        const type = (args.getString("type", false) ?? "any") as LeaderboardType;
-        const includeTies = args.getBoolean("includeTies", false) ?? false;
+        const subcommand = args.getSubcommand(true);
 
-        if (!levelCode) {
-            await error(interaction, "Invalid level code.");
-            return;
+        let includeTies: boolean = false;
+        let timeline: Timeline;
+        let type: LeaderboardType;
+        let scoringMode: ScoringMode = "score";
+        let title: string = "";
+        if (subcommand === "level") {
+            const levelCode = parseLevelCode(args.getString("level", true));
+            type = (args.getString("type", false) ?? "any") as LeaderboardType;
+            includeTies = args.getBoolean("includeTies", false) ?? false;
+
+            if (!levelCode) {
+                await error(interaction, "Invalid level code.");
+                return;
+            }
+
+            const level = await cacheManager.campaignManager.getByCode(levelCode);
+            if (!level) {
+                await error(interaction, "Unknown level.");
+                return;
+            }
+
+            timeline = getTimeline(level, type, includeTies);
+            title = `Timeline for ${encodeLevelCode(level.info.code)}: ${
+                level.info.name
+            } (${type})`;
+        } else if (subcommand == "global") {
+            type = (args.getString("type", false) ?? "any") as LeaderboardType;
+            scoringMode = (args.getString("scoring_mode", false) ?? "rank") as ScoringMode;
+            includeTies = args.getBoolean("includeTies", false) ?? false;
+
+            timeline = getGlobalTimeline(type, scoringMode, includeTies);
+
+            const by = scoringMode === "rank" ? "rank" : type === "stress" ? "stress" : "budget";
+            title = `Timeline for Global leaderboard (${type}, by ${by})`;
+        } else {
+            type = (args.getString("type", false) ?? "any") as LeaderboardType;
+            const world = args.getString("world", false);
+            includeTies = args.getBoolean("includeTies", false) ?? false;
+
+            if (world) {
+                if (!parseWorldFilter(world)) {
+                    await error(interaction, "Invalid world.");
+                }
+            }
+
+            timeline = getSumOfBestTimeline(type, world, includeTies);
+            title = `Timeline for Sum Of Best (${type}, world: ${world ?? "all"})`;
         }
-
-        const level = await cacheManager.campaignManager.getByCode(levelCode);
-        if (!level) {
-            await error(interaction, "Unknown level.");
-            return;
-        }
-
-        const timeline = getTimeline(level, type, includeTies);
 
         if (timeline.groups.length === 0) {
             await error(
@@ -130,10 +258,11 @@ export default new Command({
         }
 
         const pagedResponder = new PagedTimeline(client, interaction, {
-            level,
             timeline,
             includeTies,
             type,
+            title,
+            scoringMode,
         });
         await pagedResponder.start();
     },

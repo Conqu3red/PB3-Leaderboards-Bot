@@ -5,6 +5,8 @@ export interface LevelCode {
 
 export const LEVEL_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT|AT|FR)-(\d+)/i;
 
+export const WORLDS = ["CR", "MM", "RB", "BB", "VT", "LL", "RMT", "SC", "DS", "TT", "AT", "FR"];
+
 export function parseLevelCode(code: string): LevelCode | null {
     let match = code.match(LEVEL_REGEX);
     if (!match) return null;

@@ -1,13 +1,13 @@
 import { BaseLevel } from "./Level";
 import { CampaignLevelInfo } from "./CampaignIndex";
 import { encodeLevelCode } from "../LevelCode";
-import * as Local from "../LeaderboardInterface";
 import { database } from "./Lmdb";
 import { updateHistoryData } from "../LeaderboardProcessors";
 import { CampaignManager, cacheManager } from "./CacheManager";
 import { steamUser } from "./SteamUser";
 import SteamUser from "steam-user";
 import RateLimit from "../utils/RateLimit";
+import { LeaderboardType } from "../LeaderboardInterface";
 
 export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
     lmdbKey(): string {
@@ -32,7 +32,7 @@ export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
         return this.timeUntilNextReload() <= 0;
     }
 
-    getLeaderboardName(leaderboardType: Local.LeaderboardType) {
+    getLeaderboardName(leaderboardType: LeaderboardType) {
         let postfix = "";
         if (leaderboardType !== "any") postfix = "_" + leaderboardType;
         return `${this.info.id}${postfix}`;

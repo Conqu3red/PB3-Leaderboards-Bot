@@ -32,7 +32,7 @@ export async function updateHistoryData(
 
     let newHistory = [...oldHistory];
 
-    let time = 3600 * Math.floor(DateTime.now().toSeconds() / 3600);
+    let time = 300 * Math.floor(DateTime.now().toSeconds() / 300);
 
     // Identify removed scores
     let cheated_users: Set<string> = new Set();

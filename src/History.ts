@@ -5,11 +5,20 @@ import { CampaignLevel } from "./resources/CampaignLevel";
 import { DateTime } from "luxon";
 import { FormatScore } from "./utils/Format";
 import SteamUsernames from "./resources/SteamUsernameHandler";
+import { GlobalHistory, GlobalHistoryEntry } from "./resources/GlobalHistory";
+import { ScoringMode } from "./GlobalLeaderboard";
+import { SumOfBestHistory, SumOfBestHistoryEntry } from "./resources/SumOfBestHistory";
+import { WorldFilter } from "./utils/WorldFilter";
+
+export interface TimelineScore {
+    score: number;
+    steam_id_user?: string;
+}
 
 export interface TimelineGroup {
     time: number;
     isTieBreaker: boolean;
-    scores: OldestEntry[];
+    scores: TimelineScore[];
 }
 
 export interface Timeline {
@@ -32,11 +41,11 @@ export function createTimeline(history: OldestEntry[], includeTies: boolean): Ti
 
         let group: TimelineGroup = {
             time,
-            isTieBreaker: newLowestScore === lowestScore,
+            isTieBreaker: newLowestScore !== lowestScore,
             scores: [],
         };
 
-        if (!includeTies && group.isTieBreaker) continue;
+        if (!includeTies && !group.isTieBreaker) continue;
 
         for (const score of scores) {
             if (score.score == newLowestScore) {
@@ -51,9 +60,86 @@ export function createTimeline(history: OldestEntry[], includeTies: boolean): Ti
     return timeline;
 }
 
+export function createGlobalTimeline(
+    history: GlobalHistoryEntry[],
+    includeTies: boolean
+): Timeline {
+    let topHistory = history.sort((a, b) => a.time - b.time);
+    let timeBrackets: Map<number, GlobalHistoryEntry[]> = groupBy(topHistory, (obj) => obj.time);
+    let timeline: Timeline = { groups: [] };
+
+    let prevScore = Infinity;
+
+    for (const [time, scores] of timeBrackets) {
+        const newLowestScore = Math.min(...scores.map((score) => score.value));
+
+        let group: TimelineGroup = {
+            time,
+            isTieBreaker: newLowestScore !== prevScore,
+            scores: [],
+        };
+
+        if (!includeTies && !group.isTieBreaker) continue;
+
+        for (const score of scores) {
+            if (score.value == newLowestScore) {
+                group.scores.push({ score: score.value, steam_id_user: score.steam_id_user });
+            }
+        }
+
+        prevScore = newLowestScore;
+        timeline.groups.push(group);
+    }
+
+    return timeline;
+}
+
+export function createSumOfBestTimeline(
+    history: SumOfBestHistoryEntry[],
+    includeTies: boolean
+): Timeline {
+    let topHistory = history.sort((a, b) => a.time - b.time);
+    let timeline: Timeline = { groups: [] };
+
+    let prevScore = Infinity;
+
+    for (const score of topHistory) {
+        let group: TimelineGroup = {
+            time: score.time,
+            isTieBreaker: score.score !== prevScore,
+            scores: [{ score: score.score, steam_id_user: undefined }],
+        };
+
+        if (!includeTies && !group.isTieBreaker) continue;
+
+        prevScore = score.score;
+        timeline.groups.push(group);
+    }
+
+    return timeline;
+}
+
 export function getTimeline(level: CampaignLevel, type: LeaderboardType, includeTies: boolean) {
     const history = level.getHistory(type);
     return createTimeline(history, includeTies);
+}
+
+export function getGlobalTimeline(
+    type: LeaderboardType,
+    scoringMode: ScoringMode,
+    includeTies: boolean
+) {
+    const history = GlobalHistory.get(type, scoringMode);
+    return createGlobalTimeline(history, includeTies);
+}
+
+export function getSumOfBestTimeline(
+    type: LeaderboardType,
+    world: string | null,
+    includeTies: boolean
+) {
+    const history = SumOfBestHistory.get(type, world);
+    return createSumOfBestTimeline(history, includeTies);
 }
 
 const WIDTH = 900;
@@ -67,7 +153,12 @@ export const PER_PAGE = 8;
 
 const HEIGHT = 2 * SPACING + (PER_PAGE - 1) * PER_GROUP;
 
-export function renderTimeline(timeline: Timeline, page_index: number, type: LeaderboardType) {
+export function renderTimeline(
+    timeline: Timeline,
+    page_index: number,
+    type: LeaderboardType,
+    scoringMode: ScoringMode
+) {
     const canvas = createCanvas(WIDTH + 2 * BORDER, HEIGHT + 2 * BORDER);
     const ctx = canvas.getContext("2d");
 
@@ -122,13 +213,19 @@ export function renderTimeline(timeline: Timeline, page_index: number, type: Lea
         ctx.textAlign = "left";
 
         const score = group.scores[0];
-        ctx.textBaseline = "bottom";
-        ctx.fillText(FormatScore(score.score, type), BORDER + LINE_X + 50, y);
+        ctx.textBaseline = score.steam_id_user ? "bottom" : "middle";
+        const renderedScore =
+            scoringMode === "rank"
+                ? score.score.toLocaleString("en-US")
+                : FormatScore(score.score, type);
+        ctx.fillText(renderedScore, BORDER + LINE_X + 50, y);
 
-        ctx.textBaseline = "top";
-        ctx.fillText(SteamUsernames.get(score.steam_id_user), BORDER + LINE_X + 50, y);
-        if (group.scores.length > 1) {
-            ctx.fillText(`(+${group.scores.length - 1} more)`, BORDER + LINE_X + 50, y + 40);
+        if (score.steam_id_user) {
+            ctx.textBaseline = "top";
+            ctx.fillText(SteamUsernames.get(score.steam_id_user), BORDER + LINE_X + 50, y);
+            if (group.scores.length > 1) {
+                ctx.fillText(`(+${group.scores.length - 1} more)`, BORDER + LINE_X + 50, y + 40);
+            }
         }
 
         y += PER_GROUP;

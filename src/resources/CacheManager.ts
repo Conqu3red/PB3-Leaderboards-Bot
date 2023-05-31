@@ -13,6 +13,8 @@ import SteamUsernames, { PriorityLevel, UpdateResult } from "./SteamUsernameHand
 import { steamUser } from "./SteamUser";
 import fs from "fs";
 import { DATA_DIR } from "../Consts";
+import { GlobalHistory } from "./GlobalHistory";
+import { SumOfBestHistory } from "./SumOfBestHistory";
 
 export class CampaignManager {
     static CAMPAIGN_LEVEL_RELOAD_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour
@@ -220,6 +222,9 @@ export class CacheManager {
     async maybeReload() {
         await this.campaignManager.maybeReload();
         if (campaignBuckets.needsReload()) await campaignBuckets.reload();
+
+        if (GlobalHistory.timeUntilNextReload() < 0) await GlobalHistory.reloadAll();
+        if (SumOfBestHistory.timeUntilNextReload() < 0) await SumOfBestHistory.reloadAll();
     }
 
     async nameUpdate() {
@@ -267,7 +272,9 @@ export class CacheManager {
             try {
                 let nextReloadTime = Math.min(
                     await this.campaignManager.timeToNextReload(),
-                    await campaignBuckets.timeUntilNextReload()
+                    await campaignBuckets.timeUntilNextReload(),
+                    GlobalHistory.timeUntilNextReload(),
+                    SumOfBestHistory.timeUntilNextReload()
                 );
 
                 console.log(`[CacheManager] Next reload in ${nextReloadTime / 1000}s`);
