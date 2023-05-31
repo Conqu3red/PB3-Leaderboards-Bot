@@ -135,7 +135,7 @@ export default class SteamUsernames {
     static async reload(): Promise<UpdateResult> {
         let ids: string[] = [];
         for (const level of this.buckets) {
-            if (level.idsQueued.size > 0) {
+            if (level.idQueue.length() > 0) {
                 console.log(
                     `[SteamUsernames] ${
                         PriorityLevel[level.priorityLevel]

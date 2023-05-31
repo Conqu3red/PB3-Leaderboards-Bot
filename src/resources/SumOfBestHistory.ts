@@ -67,7 +67,8 @@ export class SumOfBestHistory {
 
     static updateHistory(history: SumOfBestHistoryEntry[], sob: number) {
         let time = 300 * Math.floor(DateTime.now().toSeconds() / 300);
-        history.push({ score: sob, time });
+        if (history.length === 0 || sob != history[history.length - 1].score)
+            history.push({ score: sob, time });
         return history;
     }
 }
