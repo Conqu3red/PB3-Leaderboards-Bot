@@ -56,9 +56,9 @@ export default new Command({
 
         const id = user.match(USER_ID_PATTERN);
         if (id) {
-            await linkUserWithID(interaction.user.id, id[0]);
+            await linkUserWithID(interaction.user.id, id[1]);
             await interaction.editReply({
-                content: `Linked to user with ID of \`${id[0]}\``,
+                content: `Linked to user with ID of \`${id[1]}\``,
                 components: [],
             });
             return;
