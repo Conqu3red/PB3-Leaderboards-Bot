@@ -45,7 +45,7 @@ export class UsernamePriorityBucket {
     }
 
     pullUsernames(buffer: string[]) {
-        for (let i = 0; i < 100; i++) {
+        while (buffer.length < 100) {
             if (this.idQueue.isEmpty()) break;
             const v = this.idQueue.shift();
             if (v != null && this.idsQueued.has(v)) {
