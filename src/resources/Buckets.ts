@@ -47,7 +47,7 @@ const levelBucketsParser = Parser.start().endianness("little").array("buckets", 
 });
 
 export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
-    8 * 60 * 60 * 1000,
+    30 * 60 * 1000, // 30 minutes
     "collated.json",
     "buckets/campaign.bin",
     {},
