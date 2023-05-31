@@ -84,8 +84,7 @@ export abstract class PagedResponder {
                 filter: (i) => {
                     i.deferUpdate();
                     return (
-                        i.message.id === this.message?.id &&
-                        i.message.author.id === this.message?.author?.id
+                        i.message.id === this.message?.id && i.user.id === this.interaction.user.id
                     );
                 },
             });
