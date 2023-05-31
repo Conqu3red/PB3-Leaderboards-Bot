@@ -148,18 +148,14 @@ class PagedProfileLeaderboard extends PagedResponder {
             embeds: [
                 {
                     title: `Profile - \`${this.username}\` ${this.getDetails()}`,
-                    color: 0x3586ff,
                     image: {
                         url: `attachment://${uuid}.png`,
                     },
                     footer: {
                         text: `Page ${this.page + 1}/${this.pageCount}`,
                     },
-                    author: {
-                        name: "PB2 Leaderboards Bot",
-                        icon_url:
-                            "https://cdn.discordapp.com/app-assets/720364938908008568/758752385244987423.png",
-                    },
+                    author: EMBED_AUTHOR,
+                    color: EMBED_COLOR,
                 },
             ],
             components: [arrowComponents],
