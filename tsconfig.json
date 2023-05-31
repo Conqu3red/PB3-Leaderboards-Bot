@@ -13,7 +13,7 @@
         "skipLibCheck": true,
         "skipDefaultLibCheck": true,
         "resolveJsonModule": true,
-        "importHelpers": true,
+        "importHelpers": false,
         "strict": true,
         "declaration": true,
         "declarationDir": "dist/types"
