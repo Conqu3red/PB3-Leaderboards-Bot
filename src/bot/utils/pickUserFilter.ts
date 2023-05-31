@@ -5,7 +5,7 @@ import { EditMessageType } from "../structures/PagedResponder";
 import { error } from "./embeds";
 
 export const DISCORD_USER_PATTERN = /<@!?(\d{17,19})>/;
-export const USER_ID_PATTERN = /@([a-zA-Z0-9])+/;
+export const USER_ID_PATTERN = /@([a-zA-Z0-9]+)/;
 
 export async function userMatchesDiscordID(discordID: string): Promise<UserFilter | null> {
     const dbUser = await User.findOne({ where: { discordID } });
