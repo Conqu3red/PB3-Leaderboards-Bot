@@ -3,12 +3,12 @@ export interface LevelCode {
     level: number;
 }
 
-export const LEVEL_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT|AT|FR)-(\d+)/i;
+export const LEVEL_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT|AT|FR)-?(\d+)/i;
 
 export const WORLDS = ["CR", "MM", "RB", "BB", "VT", "LL", "RMT", "SC", "DS", "TT", "AT", "FR"];
 
 export function parseLevelCode(code: string): LevelCode | null {
-    let match = code.match(LEVEL_REGEX);
+    let match = code.replaceAll(/\s/g, "").match(LEVEL_REGEX);
     if (!match) return null;
     let world = match[1];
     let level = parseInt(match[2]);
