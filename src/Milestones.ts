@@ -27,7 +27,8 @@ export function getPercentile(score: number, buckets: LevelBucket): number {
             const amountThroughValues =
                 (score - buckets.start[i]) / (buckets.end[i] - buckets.start[i]);
             return Math.round(
-                count + buckets.count[i] * Math.max(Math.min(amountThroughValues, 1), 0)
+                count +
+                    (100 * buckets.count[i] * Math.max(Math.min(amountThroughValues, 1), 0)) / total
             );
         }
         count += 100 * (buckets.count[i] / total);
