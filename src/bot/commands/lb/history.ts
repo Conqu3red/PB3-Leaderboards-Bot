@@ -1,28 +1,13 @@
-import { Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
-import { encodeLevelCode, LevelCode, parseLevelCode, WORLDS } from "../../../LevelCode";
+import { LeaderboardType } from "../../../LeaderboardInterface";
+import { encodeLevelCode, parseLevelCode, WORLDS } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
-import { CampaignLevel } from "../../../resources/CampaignLevel";
-import { renderBoard, renderBoardComparison } from "../../../TopLeaderboard";
 import { ExtendedClient } from "../../structures/Client";
 import { Command } from "../../structures/Command";
 import { v4 as uuidv4 } from "uuid";
-import { DateTime } from "luxon";
 import { arrowComponents, EditMessageType, PagedResponder } from "../../structures/PagedResponder";
 import { error } from "../../utils/embeds";
-import { N_ENTRIES as ENTRIES_PER_PAGE } from "../../../Consts";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
-import { WeeklyLevel } from "../../../resources/WeeklyLevel";
-import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
-import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
-import {
-    collectBuckets,
-    getHistogramBuckets,
-    RenderConfig,
-    renderHistogram,
-} from "../../../ScoreDistribution";
-import { getInterpolatedRank, getPercentile } from "../../../Milestones";
-import { campaignBuckets } from "../../../resources/Buckets";
-import { FormatScore } from "../../../utils/Format";
+
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 import {
     PER_PAGE,
@@ -150,13 +135,6 @@ export default new Command({
                 )
                 .addStringOption((option) =>
                     option
-                        .setName("world")
-                        .setDescription("Display for specific world")
-                        .setChoices(...WORLDS.map((w) => ({ name: w, value: w })))
-                        .setRequired(false)
-                )
-                .addStringOption((option) =>
-                    option
                         .setName("include_ties")
                         .setDescription(
                             "Include events when a user ties first place (default: false)"
@@ -256,6 +234,8 @@ export default new Command({
             );
             return;
         }
+
+        timeline.groups.reverse();
 
         const pagedResponder = new PagedTimeline(client, interaction, {
             timeline,
