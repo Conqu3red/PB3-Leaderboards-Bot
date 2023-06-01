@@ -55,7 +55,9 @@ export class GlobalHistory {
         await database.put("globalt", this.lastReloadTimeMs);
     }
 
-    static JUNE_1ST_FILTER = 1400;
+    static JUNE_1ST_RANK_FILTER = 1400;
+    static JUNE_1ST_BUDGET_FILTER = 1_000_000;
+    static JUNE_1ST_STRESS_FILTER = 500_000;
     static JUNE_1ST_CUTOFF = DateTime.fromISO("2023-06-05").toSeconds();
 
     static updateHistory(
@@ -72,9 +74,23 @@ export class GlobalHistory {
             console.log(
                 `[CacheManager] Applying JUNE1ST Patch to global history ${type} / ${mode}`
             );
-            history = history.filter(
-                (h) => h.time > this.JUNE_1ST_CUTOFF || h.value > this.JUNE_1ST_FILTER
-            );
+            if (mode === "rank") {
+                history = history.filter(
+                    (h) => h.time > this.JUNE_1ST_CUTOFF || h.value > this.JUNE_1ST_RANK_FILTER
+                );
+            } else {
+                if (type === "stress") {
+                    history = history.filter(
+                        (h) =>
+                            h.time > this.JUNE_1ST_CUTOFF || h.value > this.JUNE_1ST_STRESS_FILTER
+                    );
+                } else {
+                    history = history.filter(
+                        (h) =>
+                            h.time > this.JUNE_1ST_CUTOFF || h.value > this.JUNE_1ST_BUDGET_FILTER
+                    );
+                }
+            }
             database.putSync(`june_1st_patch:${type}:${mode}`, Date.now());
         }
 
