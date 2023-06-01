@@ -7,7 +7,7 @@ import { Leaderboard, LeaderboardType } from "../LeaderboardInterface";
 import { database, userDB } from "./Lmdb";
 import RateLimit from "../utils/RateLimit";
 import SteamUser, { EResult } from "steam-user";
-import { ClientLBSFindOrCreateLBResponse, ClientLBSGetLBEntriesResponse } from "../Steam";
+import { ClientLBSFindOrCreateLBResponse, ClientLBSGetLBEntriesResponse } from "./Steam";
 import { updateHistoryData } from "../LeaderboardProcessors";
 import SteamUsernames, { PriorityLevel, UpdateResult } from "./SteamUsernameHandler";
 import { steamUser } from "./SteamUser";

@@ -1,4 +1,4 @@
-import { LookupUsers, UserLookupResult } from "../Steam";
+import { LookupUsers, UserLookupResult } from "./Steam";
 import { steamAPI, steamUser } from "./SteamUser";
 import Queue from "../utils/Queue";
 import { userDB } from "./Lmdb";

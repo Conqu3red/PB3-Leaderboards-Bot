@@ -1,5 +1,5 @@
 import SteamWebAPI from "@doctormckay/steam-webapi";
-import { ExpandedSteamUser } from "../Steam";
+import { ExpandedSteamUser } from "./Steam";
 
 export const steamAPI = new SteamWebAPI();
 

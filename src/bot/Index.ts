@@ -5,7 +5,7 @@ import { GatewayIntentBits } from "discord.js";
 import { sequelize } from "./Sequelize";
 import User from "./models/User";
 import SteamWebAPI from "@doctormckay/steam-webapi";
-import { ExpandedSteamUser } from "../Steam";
+import { ExpandedSteamUser } from "../resources/Steam";
 import { steamAPI, steamUser } from "../resources/SteamUser";
 import { EResult } from "steam-user";
 

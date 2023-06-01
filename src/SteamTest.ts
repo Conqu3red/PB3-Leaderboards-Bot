@@ -1,5 +1,5 @@
 import SteamWebAPI from "@doctormckay/steam-webapi";
-import { ExpandedSteamUser, LookupUsers } from "./Steam";
+import { ExpandedSteamUser, LookupUsers } from "./resources/Steam";
 
 require("dotenv").config();
 const { STEAM_WEBAPI_KEY, STEAM_USERNAME, STEAM_PASSWORD } = process.env;

@@ -3,7 +3,7 @@ import { Leaderboard, LeaderboardEntry, OldestEntry } from "./LeaderboardInterfa
 
 import { OLDEST_RANK_LIMIT, TIME_FORMAT } from "./Consts";
 import SteamUsernames from "./resources/SteamUsernameHandler";
-import { LBEntry } from "./Steam";
+import { LBEntry } from "./resources/Steam";
 import { steamUser } from "./resources/SteamUser";
 import SteamUser from "steam-user";
 import RateLimit from "./utils/RateLimit";

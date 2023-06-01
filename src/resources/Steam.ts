@@ -4,7 +4,7 @@ import Helpers from "steam-user/components/helpers";
 import Schema from "steam-user/protobufs/generated/_load";
 import ByteBuffer from "bytebuffer";
 import SteamWebAPI from "@doctormckay/steam-webapi";
-import { APP_ID } from "./Consts";
+import { APP_ID } from "../Consts";
 
 export type ApiCallback = (body: object | Buffer | ByteBuffer) => void;
 
