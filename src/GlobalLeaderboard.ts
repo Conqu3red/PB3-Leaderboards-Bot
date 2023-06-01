@@ -86,7 +86,7 @@ async function collateBoards(
 }
 
 export async function globalLeaderboard(options?: GlobalOptions): Promise<GlobalEntry[] | null> {
-    options = Object.assign(defaultOptions, options);
+    options = Object.assign(options ?? {}, defaultOptions);
     let levelFilter = levelFilters[options.levelCategory];
     let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
     if (options && options.worldFilters && options.worldFilters.length > 0) {
@@ -112,7 +112,7 @@ export async function renderGlobal(
     index: number,
     options?: GlobalOptions
 ): Promise<Buffer> {
-    options = Object.assign(defaultOptions, options);
+    options = Object.assign(options ?? {}, defaultOptions);
     const canvas = createCanvas(300, 350);
 
     let title = "Score";

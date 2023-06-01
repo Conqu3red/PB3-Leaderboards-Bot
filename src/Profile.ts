@@ -55,7 +55,7 @@ function isCampgainLevel(level: BaseLevel<any>): level is CampaignLevel {
 }
 
 export async function getProfile(user: UserFilter, options?: Options): Promise<Profile | null> {
-    options = Object.assign(defaultOptions, options);
+    options = Object.assign(options ?? {}, defaultOptions);
     let owner: string | undefined = undefined;
 
     let levelScores: LevelScore[] = [];
@@ -131,7 +131,7 @@ export async function renderProfileLevelScores(
     index: number,
     options?: Options
 ): Promise<Buffer> {
-    options = Object.assign(defaultOptions, options);
+    options = Object.assign(options ?? {}, defaultOptions);
     const canvas = createCanvas(300, 350);
 
     const columns: CTColumn[] = [
