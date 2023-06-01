@@ -10,7 +10,7 @@ export interface GlobalHistoryEntry extends GlobalEntry {
 }
 
 export class GlobalHistory {
-    static RELOAD_FREQUENCY = 30 * 60 * 1000; // 30 minutes
+    static RELOAD_FREQUENCY = 24 * 60 * 60 * 1000; // daily
     static lastReloadTimeMs = database.get("globalt") ?? 0;
 
     static timeUntilNextReload(): number {
@@ -84,7 +84,7 @@ export class GlobalHistory {
         }
 
         for (const entry of newTop) {
-            if (entry.rank > OLDEST_RANK_LIMIT) break;
+            if (entry.rank > 5) break;
             const users_last_score = latest_history_scores.get(entry.steam_id_user);
             if (!users_last_score || entry.value != users_last_score.value) {
                 history.push({ ...entry, time });
