@@ -13,7 +13,7 @@ export interface SumOfBestHistoryEntry {
 }
 
 export class SumOfBestHistory {
-    static RELOAD_FREQUENCY = 30 * 60 * 1000; // 30 minutes
+    static RELOAD_FREQUENCY = 24 * 60 * 60 * 1000; // daily
     static lastReloadTimeMs = database.get("sobt") ?? 0;
 
     static timeUntilNextReload(): number {
