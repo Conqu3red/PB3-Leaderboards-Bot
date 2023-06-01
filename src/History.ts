@@ -87,8 +87,21 @@ export function createGlobalTimeline(
             }
         }
 
-        prevScore = newLowestScore;
-        timeline.groups.push(group);
+        const hasNewUser =
+            timeline.groups.length === 0 ||
+            group.scores.find(
+                (score) =>
+                    !timeline.groups[timeline.groups.length - 1].scores.find(
+                        (oldScore) => score.steam_id_user === oldScore.steam_id_user
+                    )
+            );
+
+        const isImprovement = newLowestScore < prevScore;
+
+        if (hasNewUser || isImprovement) {
+            prevScore = newLowestScore;
+            timeline.groups.push(group);
+        }
     }
 
     return timeline;
