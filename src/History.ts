@@ -32,6 +32,8 @@ export function createTimeline(history: OldestEntry[], includeTies: boolean): Ti
     let timeBrackets: Map<number, OldestEntry[]> = groupBy(topHistory, (obj) => obj.time);
     let lowestScore = Infinity;
 
+    let userScores: Map<string, OldestEntry> = new Map();
+
     let timeline: Timeline = { groups: [] };
 
     for (const [time, scores] of timeBrackets) {
@@ -45,15 +47,25 @@ export function createTimeline(history: OldestEntry[], includeTies: boolean): Ti
             scores: [],
         };
 
+        lowestScore = newLowestScore;
+
         if (!includeTies && !group.isTieBreaker) continue;
 
         for (const score of scores) {
-            if (score.score == newLowestScore) {
-                group.scores.push(score);
+            if (score.score > lowestScore) continue;
+
+            userScores.set(score.steam_id_user, score);
+        }
+
+        // remove top users that no longer meet the top score
+        for (const [id, entry] of userScores) {
+            if (entry.score > lowestScore) {
+                userScores.delete(id);
             }
         }
 
-        lowestScore = newLowestScore;
+        group.scores = [...userScores.values()];
+
         timeline.groups.push(group);
     }
 
@@ -70,8 +82,23 @@ export function createGlobalTimeline(
 
     let prevScore = Infinity;
 
-    for (const [time, scores] of timeBrackets) {
-        const newLowestScore = Math.min(...scores.map((score) => score.value));
+    let brackets = Array.from(timeBrackets);
+
+    let newestIndex = -1;
+    for (let i = brackets.length - 1; i >= 0; i--) {
+        if (brackets[i][1].find((e) => e.rank === 1)) {
+            newestIndex = i;
+            break;
+        }
+    }
+
+    for (let i = 0; i < brackets.length; i++) {
+        const [time, scores] = brackets[i];
+
+        const topScores = scores.filter((score) => score.rank === 1);
+        if (topScores.length === 0) continue;
+
+        const newLowestScore = Math.min(...topScores.map((score) => score.value));
 
         let group: TimelineGroup = {
             time,
@@ -81,7 +108,7 @@ export function createGlobalTimeline(
 
         if (!includeTies && !group.isTieBreaker) continue;
 
-        for (const score of scores) {
+        for (const score of topScores) {
             if (score.value == newLowestScore) {
                 group.scores.push({ score: score.value, steam_id_user: score.steam_id_user });
             }
@@ -97,8 +124,9 @@ export function createGlobalTimeline(
             );
 
         const isImprovement = newLowestScore < prevScore;
+        const isLatest = i === newestIndex;
 
-        if (hasNewUser || isImprovement) {
+        if (hasNewUser || isLatest) {
             prevScore = newLowestScore;
             timeline.groups.push(group);
         }
