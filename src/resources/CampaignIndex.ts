@@ -22,8 +22,8 @@ export async function loadCampaignLevelInfos(): Promise<CampaignLevelInfo[]> {
         return {
             id: info.id,
             code: parseLevelCode(info.code) ?? {
-                world: "XX",
-                level: 0,
+                world: "CR",
+                level: -1,
             },
             name: info.name,
             budget: info.budget,

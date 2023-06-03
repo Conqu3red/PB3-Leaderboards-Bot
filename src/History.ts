@@ -9,6 +9,7 @@ import { GlobalHistory, GlobalHistoryEntry } from "./resources/GlobalHistory";
 import { ScoringMode } from "./GlobalLeaderboard";
 import { SumOfBestHistory, SumOfBestHistoryEntry } from "./resources/SumOfBestHistory";
 import { WorldFilter } from "./utils/WorldFilter";
+import { World } from "./LevelCode";
 
 export interface TimelineScore {
     score: number;
@@ -167,16 +168,17 @@ export function getTimeline(level: CampaignLevel, type: LeaderboardType, include
 
 export function getGlobalTimeline(
     type: LeaderboardType,
+    world: World | null,
     scoringMode: ScoringMode,
     includeTies: boolean
 ) {
-    const history = GlobalHistory.get(type, scoringMode);
+    const history = GlobalHistory.get(type, world, scoringMode);
     return createGlobalTimeline(history, includeTies);
 }
 
 export function getSumOfBestTimeline(
     type: LeaderboardType,
-    world: string | null,
+    world: World | null,
     includeTies: boolean
 ) {
     const history = SumOfBestHistory.get(type, world);

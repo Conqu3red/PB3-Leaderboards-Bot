@@ -1,17 +1,13 @@
-import { LevelCode } from "../LevelCode";
+import { LevelCode, World, isWorld } from "../LevelCode";
 
 export interface WorldFilter {
-    world: string;
+    world: World;
 }
 
-const WORLD_FILTER_REGEX = /(CR|MM|RB|BB|VT|LL|RMT|SC|DS|TT|AT|FR)/i;
-
 export function parseWorldFilter(filter: string): WorldFilter | null {
-    filter = filter.toUpperCase().trimStart().trimEnd();
-    let match = filter.match(WORLD_FILTER_REGEX);
-    if (!match) return null;
-    let world = match[1];
-    return { world };
+    filter = filter.toUpperCase().replace(/\s/g, "");
+    if (!isWorld(filter)) return null;
+    return { world: filter };
 }
 
 export function parseManyWorldFilters(filters: string): WorldFilter[] {

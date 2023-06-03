@@ -4,49 +4,87 @@ import { LeaderboardType, OldestEntry } from "../LeaderboardInterface";
 import { database } from "./Lmdb";
 import { OLDEST_RANK_LIMIT } from "../Consts";
 import { cacheManager } from "./CacheManager";
+import { WORLDS, World } from "../LevelCode";
 
 export interface GlobalHistoryEntry extends GlobalEntry {
     time: number; // epoch seconds
 }
 
 export class GlobalHistory {
-    static RELOAD_FREQUENCY = 24 * 60 * 60 * 1000; // daily
+    static RELOAD_FREQUENCY = 1 * 60 * 60 * 1000; // hourly
     static lastReloadTimeMs = database.get("globalt") ?? 0;
 
     static timeUntilNextReload(): number {
         return this.RELOAD_FREQUENCY - (Date.now() - this.lastReloadTimeMs);
     }
 
-    static get(type: LeaderboardType, mode: ScoringMode): GlobalHistoryEntry[] {
-        const board: GlobalHistoryEntry[] | undefined = database.get(this.lmdbKey(type, mode));
+    static get(
+        type: LeaderboardType,
+        world: World | null,
+        mode: ScoringMode
+    ): GlobalHistoryEntry[] {
+        const board: GlobalHistoryEntry[] | undefined = database.get(
+            this.lmdbKey(type, world, mode)
+        );
         return board ?? [];
     }
 
-    static async set(type: LeaderboardType, mode: ScoringMode, data: GlobalHistoryEntry[]) {
-        await database.put(this.lmdbKey(type, mode), data);
+    static async set(
+        type: LeaderboardType,
+        world: World | null,
+        mode: ScoringMode,
+        data: GlobalHistoryEntry[]
+    ) {
+        await database.put(this.lmdbKey(type, world, mode), data);
     }
 
-    static lmdbKey(type: LeaderboardType, mode: ScoringMode): string {
-        return `global:${type}:${mode}`;
+    static lmdbKey(type: LeaderboardType, world: World | null, mode: ScoringMode): string {
+        return `global:${type}:${mode}:${world}`;
     }
 
     static async reloadAll() {
-        for (const type of ["any", "unbreaking", "stress"]) {
-            for (const mode of ["rank", "score"]) {
+        const types: LeaderboardType[] = ["any", "unbreaking", "stress"];
+        const modes: ScoringMode[] = ["rank", "score"];
+
+        for (const type of types) {
+            for (const mode of modes) {
                 const top = await globalLeaderboard({
                     levelCategory: "all",
-                    type: type as LeaderboardType,
-                    scoringMode: mode as ScoringMode,
+                    type: type,
+                    scoringMode: mode,
                 });
                 if (top) {
                     const history = this.updateHistory(
-                        this.get(type as LeaderboardType, mode as ScoringMode),
+                        this.get(type, null, mode),
                         top,
-                        type as LeaderboardType,
-                        mode as ScoringMode
+                        type,
+                        null,
+                        mode
                     );
-                    await this.set(type as LeaderboardType, mode as ScoringMode, history);
+                    await this.set(type, null, mode, history);
                     console.log(`[CacheManager] Global History History ${type} / ${mode} updated.`);
+                }
+
+                for (const world of WORLDS) {
+                    const top = await globalLeaderboard({
+                        levelCategory: "all",
+                        type: type,
+                        scoringMode: mode,
+                        worldFilters: [{ world }],
+                    });
+                    if (top) {
+                        const history = this.updateHistory(
+                            this.get(type, world, mode),
+                            top,
+                            type,
+                            world,
+                            mode
+                        );
+                        await this.set(type, world, mode, history);
+                        console.log(
+                            `[CacheManager] Global History History ${type} / ${mode} / ${world} updated.`
+                        );
+                    }
                 }
             }
         }
@@ -64,13 +102,14 @@ export class GlobalHistory {
         history: GlobalHistoryEntry[],
         newTop: GlobalEntry[],
         type: LeaderboardType,
+        world: World | null,
         mode: ScoringMode
     ) {
         let has_june_1st_patch = database.get(`june_1st_patch:${type}:${mode}`);
 
         let time = 300 * Math.floor(DateTime.now().toSeconds() / 300);
 
-        if (!has_june_1st_patch) {
+        if (!has_june_1st_patch && !world) {
             console.log(
                 `[CacheManager] Applying JUNE1ST Patch to global history ${type} / ${mode}`
             );

@@ -1,5 +1,5 @@
 import { LeaderboardType } from "../../../LeaderboardInterface";
-import { encodeLevelCode, parseLevelCode, WORLDS } from "../../../LevelCode";
+import { encodeLevelCode, parseLevelCode, World, WORLDS } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { ExtendedClient } from "../../structures/Client";
 import { Command } from "../../structures/Command";
@@ -123,6 +123,13 @@ export default new Command({
                 )
                 .addStringOption((option) =>
                     option
+                        .setName("world")
+                        .setDescription("Display for specific world")
+                        .setChoices(...WORLDS.map((w) => ({ name: w, value: w })))
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
                         .setName("scoring_mode")
                         .setDescription(
                             "Calculate based on rank or budget/stress (default: by rank)"
@@ -205,25 +212,42 @@ export default new Command({
             } (${type})`;
         } else if (subcommand == "global") {
             type = (args.getString("type", false) ?? "any") as LeaderboardType;
+            const world = args.getString("world", false);
             scoringMode = (args.getString("scoring_mode", false) ?? "rank") as ScoringMode;
             includeTies = args.getBoolean("includeTies", false) ?? false;
 
-            timeline = getGlobalTimeline(type, scoringMode, includeTies);
+            let parsedWorld: World | null = null;
+
+            if (world) {
+                const filter = parseWorldFilter(world);
+                if (filter) {
+                    parsedWorld = filter.world;
+                } else {
+                    await error(interaction, "Invalid world.");
+                }
+            }
+
+            timeline = getGlobalTimeline(type, parsedWorld, scoringMode, includeTies);
 
             const by = scoringMode === "rank" ? "rank" : type === "stress" ? "stress" : "budget";
-            title = `Timeline for Global leaderboard (${type}, by ${by})`;
+            title = `Timeline for Global leaderboard (${type}, by ${by}, world: ${world ?? "all"})`;
         } else {
             type = (args.getString("type", false) ?? "any") as LeaderboardType;
             const world = args.getString("world", false);
             includeTies = args.getBoolean("includeTies", false) ?? false;
 
+            let parsedWorld: World | null = null;
+
             if (world) {
-                if (!parseWorldFilter(world)) {
+                const filter = parseWorldFilter(world);
+                if (filter) {
+                    parsedWorld = filter.world;
+                } else {
                     await error(interaction, "Invalid world.");
                 }
             }
 
-            timeline = getSumOfBestTimeline(type, world, includeTies);
+            timeline = getSumOfBestTimeline(type, parsedWorld, includeTies);
             title = `Timeline for Sum Of Best (${type}, world: ${world ?? "all"})`;
         }
 
