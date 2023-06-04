@@ -253,7 +253,7 @@ export class CacheManager {
                     await userDB.put("_refresh", Date.now());
                 }
             } catch (e: any) {
-                console.error(`[SteamUsernames] ERR: ${e.stack !== undefined ? e.stack : e}`);
+                console.error(`[SteamUsernames] ERR: ${e && e.stack ? e.stack : e}`);
             }
         }
     }
@@ -282,7 +282,7 @@ export class CacheManager {
 
                 await this.maybeReload();
             } catch (e: any) {
-                console.error(`[CacheManager] ERR: ${e.stack !== undefined ? e.stack : e}`);
+                console.error(`[CacheManager] ERR: ${e && e.stack ? e.stack : e}`);
             }
         }
     }

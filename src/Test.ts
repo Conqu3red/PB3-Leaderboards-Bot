@@ -9,7 +9,7 @@ import { DateTime } from "luxon";
 import { findAllUsersWithUsername } from "./UserFinder";
 import { getPercentile } from "./Milestones";
 import { renderHistogram, collectBuckets, getHistogramBuckets } from "./ScoreDistribution";
-import { database } from "./resources/Lmdb";
+import { database, userDB } from "./resources/Lmdb";
 import fs from "fs";
 import SteamUsernames from "./resources/SteamUsernameHandler";
 import { encodeLevelCode } from "./LevelCode";
@@ -87,10 +87,10 @@ async function buckets() {
 async function main() {
     configureHttp();
 
+    await cacheManager.campaignManager.populate();
+
     // await weeklyTest();
     await otherStuff();
-
-    await cacheManager.campaignManager.maybeReload();
 
     //await Promise.all(cacheManager.campaignManager.campaignLevels.map((l) => l.reload()));
 
@@ -151,10 +151,10 @@ async function main() {
         break;
     }
 
-    console.log(
+    /* console.log(
         "Users with name:",
         await findAllUsersWithUsername(cacheManager.campaignManager.campaignLevels, "alex")
-    );
+    ); */
 
     let buckets = await campaignBuckets.get();
     let level2 = await cacheManager.campaignManager.getByCode("CR-01");
@@ -172,7 +172,7 @@ async function main() {
         }
     }
 
-    for (const level of cacheManager.campaignManager.campaignLevels) {
+    /* for (const level of cacheManager.campaignManager.campaignLevels) {
         let levelBuckets = buckets[level.info.id];
         const histogram_buckets = await getHistogramBuckets(level, "any");
         if (levelBuckets && histogram_buckets) {
@@ -183,7 +183,7 @@ async function main() {
             fs.writeFileSync(`./distributions/${encodeLevelCode(level.info.code)}.png`, buf);
             console.log(`-> ./distributions/${encodeLevelCode(level.info.code)}.png`);
         }
-    }
+    } */
 
     //await buckets();
 
@@ -246,6 +246,7 @@ async function main() {
     } */
 
     await database.close();
+    await userDB.close();
 }
 
 main();

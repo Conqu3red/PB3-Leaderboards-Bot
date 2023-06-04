@@ -136,11 +136,11 @@ export default class SteamUsernames {
         let ids: string[] = [];
         for (const level of this.buckets) {
             if (level.idQueue.length() > 0) {
-                console.log(
+                /* console.log(
                     `[SteamUsernames] ${
                         PriorityLevel[level.priorityLevel]
                     } = ${level.idQueue.length()}`
-                );
+                ); */
             }
             level.pullUsernames(ids);
         }

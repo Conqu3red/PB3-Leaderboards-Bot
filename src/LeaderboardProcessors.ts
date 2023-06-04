@@ -116,7 +116,9 @@ export async function updateHistoryData(
         }
     } catch (e: any) {
         console.error(
-            `CRITICAL: failed to find missing entries to fix oldest history \n ${e.stack ?? e}`
+            `CRITICAL: failed to find missing entries to fix oldest history \n ${
+                e && e.stack ? e.stack : e
+            }`
         );
         console.error(`Assuming the scores are fine... this is really not good`);
     }
