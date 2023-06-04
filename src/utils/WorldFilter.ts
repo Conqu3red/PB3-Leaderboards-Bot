@@ -1,27 +1,23 @@
 import { LevelCode, World, isWorld } from "../LevelCode";
 
-export interface WorldFilter {
-    world: World;
-}
-
-export function parseWorldFilter(filter: string): WorldFilter | null {
+export function parseWorldFilter(filter: string): World | null {
     filter = filter.toUpperCase().replace(/\s/g, "");
     if (!isWorld(filter)) return null;
-    return { world: filter };
+    return filter;
 }
 
-export function parseManyWorldFilters(filters: string): WorldFilter[] {
+export function parseManyWorldFilters(filters: string): World[] {
     return filters
         .split(/[\s,]+/)
         .map((s) => parseWorldFilter(s))
-        .filter((s) => s !== null) as WorldFilter[];
+        .filter((s) => s !== null) as World[];
 }
 
-export function codeMatchesWorldFilter(code: LevelCode, filter: WorldFilter): boolean {
-    return code.world === filter.world;
+export function codeMatchesWorldFilter(code: LevelCode, filter: World): boolean {
+    return code.world === filter;
 }
 
-export function codeMatchesWorldFilters(code: LevelCode, filters: WorldFilter[]): boolean {
+export function codeMatchesWorldFilters(code: LevelCode, filters: World[]): boolean {
     for (const filter of filters) {
         if (codeMatchesWorldFilter(code, filter)) {
             return true;
@@ -29,12 +25,4 @@ export function codeMatchesWorldFilters(code: LevelCode, filters: WorldFilter[])
     }
 
     return false;
-}
-
-export function formatWorldFilter(filter: WorldFilter) {
-    return `${filter.world}`;
-}
-
-export function formatManyWorldFilters(filters: WorldFilter[]) {
-    return filters.map(formatWorldFilter).join(", ");
 }

@@ -5,10 +5,11 @@ import { WeeklyLevel } from "./resources/WeeklyLevel";
 import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
-import { WorldFilter, codeMatchesWorldFilters } from "./utils/WorldFilter";
+import { codeMatchesWorldFilters } from "./utils/WorldFilter";
 import SteamUsernames from "./resources/SteamUsernameHandler";
 import { FormatScore } from "./utils/Format";
 import rankToScore from "../json/rank_to_score.json";
+import { World } from "./LevelCode";
 
 export type LevelCategory = "all" /* | "weekly"*/;
 export type ScoringMode = "rank" | "score";
@@ -28,7 +29,7 @@ export interface GlobalOptions {
     type: LeaderboardType;
     levelCategory: LevelCategory;
     scoringMode: ScoringMode;
-    worldFilters?: WorldFilter[];
+    worldFilters?: World[];
 }
 
 export const defaultOptions: GlobalOptions = {

@@ -38,25 +38,21 @@ export class SumOfBestHistory {
     }
 
     static async reloadAll() {
-        for (const type of ["any", "unbreaking", "stress"]) {
-            const sob = await sumOfBest(type as LeaderboardType);
-            const history = this.updateHistory(
-                this.get(type as LeaderboardType, null),
-                sob.overall
-            );
-            await this.set(type as LeaderboardType, null, history);
+        const types: LeaderboardType[] = ["any", "unbreaking", "stress"];
+
+        for (const type of types) {
+            const sob = await sumOfBest(type);
+            const history = this.updateHistory(this.get(type, null), sob.overall);
+            await this.set(type, null, history);
             console.log(`[CacheManager] SoB History ${type} updated.`);
 
             // Individual world
             for (const world of WORLDS) {
                 const filter = parseWorldFilter(world);
                 if (!filter) continue;
-                const sob = await sumOfBest(type as LeaderboardType, [filter]);
-                const history = this.updateHistory(
-                    this.get(type as LeaderboardType, world),
-                    sob.overall
-                );
-                await this.set(type as LeaderboardType, world, history);
+                const sob = await sumOfBest(type, [filter]);
+                const history = this.updateHistory(this.get(type, world), sob.overall);
+                await this.set(type, world, history);
                 console.log(`[CacheManager] SoB History ${type} (world ${world}) updated.`);
             }
         }

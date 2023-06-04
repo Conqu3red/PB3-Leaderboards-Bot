@@ -1,5 +1,5 @@
 import { Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
-import { encodeLevelCode, LevelCode } from "../../../LevelCode";
+import { encodeLevelCode, LevelCode, World } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
 import { renderBoard, renderBoardComparison } from "../../../TopLeaderboard";
@@ -15,11 +15,7 @@ import { WeeklyLevel } from "../../../resources/WeeklyLevel";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 import { sumOfBest } from "../../../SumOfBest";
-import {
-    formatManyWorldFilters,
-    parseManyWorldFilters,
-    WorldFilter,
-} from "../../../utils/WorldFilter";
+import { parseManyWorldFilters } from "../../../utils/WorldFilter";
 import { FormatScore } from "../../../utils/Format";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
@@ -51,7 +47,7 @@ export default new Command({
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const world = args.getString("world", false);
 
-        let worldFilters: WorldFilter[] = [];
+        let worldFilters: World[] = [];
         if (world) {
             worldFilters = parseManyWorldFilters(world);
             if (worldFilters.length === 0) {
@@ -62,7 +58,7 @@ export default new Command({
 
         const sumsOfBest = await sumOfBest(type, worldFilters);
 
-        const worlds = `World: ${formatManyWorldFilters(worldFilters)}`;
+        const worlds = `World: ${worldFilters.join(", ")}`;
 
         await interaction.editReply({
             embeds: [

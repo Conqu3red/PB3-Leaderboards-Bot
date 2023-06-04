@@ -8,7 +8,6 @@ import SteamUsernames from "./resources/SteamUsernameHandler";
 import { GlobalHistory, GlobalHistoryEntry } from "./resources/GlobalHistory";
 import { ScoringMode } from "./GlobalLeaderboard";
 import { SumOfBestHistory, SumOfBestHistoryEntry } from "./resources/SumOfBestHistory";
-import { WorldFilter } from "./utils/WorldFilter";
 import { World } from "./LevelCode";
 
 export interface TimelineScore {

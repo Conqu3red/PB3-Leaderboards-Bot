@@ -70,7 +70,7 @@ export class GlobalHistory {
                         levelCategory: "all",
                         type: type,
                         scoringMode: mode,
-                        worldFilters: [{ world }],
+                        worldFilters: [world],
                     });
                     if (top) {
                         const history = this.updateHistory(

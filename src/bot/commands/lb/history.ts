@@ -221,7 +221,7 @@ export default new Command({
             if (world) {
                 const filter = parseWorldFilter(world);
                 if (filter) {
-                    parsedWorld = filter.world;
+                    parsedWorld = filter;
                 } else {
                     await error(interaction, "Invalid world.");
                 }
@@ -241,7 +241,7 @@ export default new Command({
             if (world) {
                 const filter = parseWorldFilter(world);
                 if (filter) {
-                    parsedWorld = filter.world;
+                    parsedWorld = filter;
                 } else {
                     await error(interaction, "Invalid world.");
                 }

@@ -16,13 +16,9 @@ import {
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
-import {
-    formatManyWorldFilters,
-    parseManyWorldFilters,
-    parseWorldFilter,
-    WorldFilter,
-} from "../../../utils/WorldFilter";
+import { parseManyWorldFilters, parseWorldFilter } from "../../../utils/WorldFilter";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
+import { World } from "../../../LevelCode";
 
 interface LeaderboardOptions {
     globalOptions: GlobalOptions;
@@ -65,7 +61,7 @@ class PagedGlobalLeaderboard extends PagedResponder {
         details.push(`${this.data.options.globalOptions.levelCategory} levels`);
         const worldFilters = this.data.options.globalOptions.worldFilters;
         if (worldFilters && worldFilters.length > 0) {
-            const worlds = formatManyWorldFilters(worldFilters);
+            const worlds = worldFilters.join(", ");
             details.push(`World ${worlds}`);
         }
         if (this.data.options.globalOptions.type != "any")
@@ -161,7 +157,7 @@ export default new Command({
 
         if (type === "stress" && score) score *= 100;
 
-        let worldFilters: WorldFilter[] = [];
+        let worldFilters: World[] = [];
         if (world) {
             worldFilters = parseManyWorldFilters(world);
             if (worldFilters.length === 0) {
