@@ -53,6 +53,8 @@ interface ProtoHeader {
     proto: object;
 }
 
+export const STEAM_TIMEOUT = 10_000;
+
 export class ExpandedSteamUser extends SteamUser {
     send(
         emsgOrHeader: number | ProtoHeader,
@@ -78,6 +80,11 @@ export class ExpandedSteamUser extends SteamUser {
 
     GetLeaderboard(name: string): Promise<ClientLBSFindOrCreateLBResponse> {
         return new Promise((resolve, reject) => {
+            const timer = setTimeout(
+                () => reject(new Error(`GetLeaderboard timed out after ${STEAM_TIMEOUT} ms`)),
+                STEAM_TIMEOUT
+            );
+
             this.customSend<ClientLBSFindOrCreateLB>(
                 {
                     msg: SteamUser.EMsg.ClientLBSFindOrCreateLB,
@@ -98,9 +105,11 @@ export class ExpandedSteamUser extends SteamUser {
                     );
 
                     if (result.eresult != SteamUser.EResult.OK) {
+                        clearTimeout(timer);
                         reject(Helpers.eresultError(result.eresult));
                     }
 
+                    clearTimeout(timer);
                     resolve(result);
                 }
             );
@@ -115,6 +124,12 @@ export class ExpandedSteamUser extends SteamUser {
         steamids?: string[]
     ): Promise<ClientLBSGetLBEntriesResponse> {
         return new Promise((resolve, reject) => {
+            const timer = setTimeout(
+                () =>
+                    reject(new Error(`GetLeaderboardEntries timed out after ${STEAM_TIMEOUT} ms`)),
+                STEAM_TIMEOUT
+            );
+
             this.customSend<ClientLBSGetLBEntries>(
                 {
                     msg: SteamUser.EMsg.ClientLBSGetLBEntries,
@@ -137,9 +152,11 @@ export class ExpandedSteamUser extends SteamUser {
                         body
                     );
                     if (result.eresult != SteamUser.EResult.OK) {
+                        clearTimeout(timer);
                         reject(Helpers.eresultError(result.eresult));
                     }
 
+                    clearTimeout(timer);
                     resolve(result);
                 }
             );
@@ -164,6 +181,11 @@ export async function LookupUsers(
     cellID?: number
 ): Promise<UserLookupResult> {
     return new Promise((resolve, reject) => {
+        const timer = setTimeout(
+            () => reject(new Error(`LookupUsers timed out after ${STEAM_TIMEOUT} ms`)),
+            STEAM_TIMEOUT
+        );
+
         api.get(
             "ISteamUser",
             "GetPlayerSummaries",
@@ -174,9 +196,11 @@ export async function LookupUsers(
             },
             (err, response) => {
                 if (err != null) {
+                    clearTimeout(timer);
                     reject(err);
                 }
 
+                clearTimeout(timer);
                 resolve(response as UserLookupResult);
             }
         );
