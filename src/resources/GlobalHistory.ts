@@ -39,7 +39,7 @@ export class GlobalHistory {
     }
 
     static lmdbKey(type: LeaderboardType, world: World | null, mode: ScoringMode): string {
-        return `global:${type}:${mode}:${world}`;
+        return `global:${type}:${mode}${world === null ? "" : ":" + world}`;
     }
 
     static async reloadAll() {
