@@ -20,6 +20,8 @@ export enum UpdateResult {
     FAILED,
 }
 
+export const UNITY_STYLE_TAG_REGEX = /<.*?>/g;
+
 export class UsernamePriorityBucket {
     idsQueued: Set<string> = new Set();
     idQueue: Queue<string> = new Queue();
@@ -167,14 +169,23 @@ export default class SteamUsernames {
 
         await userDB.transaction(async () => {
             for (const player of response.players) {
-                await userDB.put(player.steamid, player.personaname);
-                await userDB.put("t" + player.steamid, updateTime);
+                await this.setUsername(
+                    player.steamid,
+                    this.stripTags(player.personaname),
+                    updateTime
+                );
             }
         });
 
         console.log(`[SteamUsernames] loaded ${ids.length} IDs.`);
 
         return UpdateResult.SUCCESS;
+    }
+
+    static stripTags(username: string): string {
+        const replaced = username.replaceAll(UNITY_STYLE_TAG_REGEX, "");
+        if (replaced.length > 0) return replaced;
+        return username;
     }
 
     static get(steam_id: string): string {
@@ -188,6 +199,11 @@ export default class SteamUsernames {
             return Infinity; // needs reload
         }
         return Date.now() - reload;
+    }
+
+    static async setUsername(steam_id: string, username: string, time: number) {
+        await userDB.put(steam_id, username);
+        await userDB.put("t" + steam_id, time);
     }
 
     static ID_RELOAD_INTERVAL = 100 * 60 * 60 * 1000; // 100 hours
