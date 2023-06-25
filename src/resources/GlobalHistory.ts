@@ -139,7 +139,7 @@ export class GlobalHistory {
         }
 
         for (const entry of newTop) {
-            if (entry.rank > 5) break;
+            if (entry.rank > 10) break;
             const users_last_score = latest_history_scores.get(entry.steam_id_user);
             if (!users_last_score || entry.value != users_last_score.value) {
                 history.push({ ...entry, time });
