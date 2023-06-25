@@ -4,7 +4,7 @@ import { LeaderboardType, OldestEntry } from "../LeaderboardInterface";
 import { database } from "./Lmdb";
 import { OLDEST_RANK_LIMIT } from "../Consts";
 import { sumOfBest } from "../SumOfBest";
-import { WORLDS } from "../LevelCode";
+import { WORLDS, World } from "../LevelCode";
 import { parseWorldFilter } from "../utils/WorldFilter";
 
 export interface SumOfBestHistoryEntry {
@@ -20,20 +20,20 @@ export class SumOfBestHistory {
         return this.RELOAD_FREQUENCY - (Date.now() - this.lastReloadTimeMs);
     }
 
-    static get(type: LeaderboardType, world: string | null): SumOfBestHistoryEntry[] {
+    static get(type: LeaderboardType, world: World | null): SumOfBestHistoryEntry[] {
         const board: SumOfBestHistoryEntry[] | undefined = database.get(this.lmdbKey(type, world));
         return board ?? [];
     }
 
-    static async set(type: LeaderboardType, world: string | null, data: SumOfBestHistoryEntry[]) {
+    static async set(type: LeaderboardType, world: World | null, data: SumOfBestHistoryEntry[]) {
         await database.put(this.lmdbKey(type, world), data);
     }
 
-    static lmdbKey(type: LeaderboardType, world: string | null): string {
+    static lmdbKey(type: LeaderboardType, world: World | null): string {
         return `sob:${type}:${world ?? ""}`;
     }
 
-    static lmdbTimeKey(type: LeaderboardType, world: string | null): string {
+    static lmdbTimeKey(type: LeaderboardType, world: World | null): string {
         return `sobt:${type}:${world ?? ""}`;
     }
 
