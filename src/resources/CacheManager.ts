@@ -82,7 +82,10 @@ export class CampaignManager {
         return level ?? null;
     }
 
-    getByWeek(week: number): WeeklyLevel | null {
+    getByWeek(week: number | null): WeeklyLevel | null {
+        if (!week) {
+            week = Math.max(...this.weeklyLevels.map((level) => level.info.week));
+        }
         let level = this.weeklyLevels.find((level) => level.info.week == week);
         return level ?? null;
     }

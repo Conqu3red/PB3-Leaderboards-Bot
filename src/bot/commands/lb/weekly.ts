@@ -23,10 +23,10 @@ export default new Command({
         .setDescription("Shows the leaderboard for a weekly level")
         .setDMPermission(false)
         .addIntegerOption((option) =>
-            option.setName("season").setDescription("Weekly Season").setRequired(true)
+            option.setName("season").setDescription("Weekly Season").setRequired(false)
         )
         .addIntegerOption((option) =>
-            option.setName("week").setDescription("Week").setRequired(true)
+            option.setName("week").setDescription("Week").setRequired(false)
         )
         .addStringOption((option) =>
             option
@@ -51,8 +51,8 @@ export default new Command({
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
-        const season = args.getInteger("season", true);
-        let week = args.getInteger("week", true);
+        const season = args.getInteger("season", false);
+        let week = args.getInteger("week", false);
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
