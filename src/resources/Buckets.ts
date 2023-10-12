@@ -1,5 +1,7 @@
 import { Parser } from "binary-parser";
 import { SimpleResource } from "./RemoteResource";
+import { WeeklyLevel } from "./WeeklyLevel";
+import { CDN_URL } from "../Consts";
 
 export const BUCKETS_PER_ARRAY = 20; // Taken from the PB3 code.
 
@@ -46,38 +48,46 @@ const levelBucketsParser = Parser.start().endianness("little").array("buckets", 
     readUntil: "eof",
 });
 
+export const parseBucketBuffer = async (remote: ArrayBuffer) => {
+    const buf = Buffer.from(remote);
+    const parsed = levelBucketsParser.parse(buf);
+    let levels: CampaignBuckets = {};
+    for (const bucket of parsed.buckets) {
+        if (!levels[bucket.id]) {
+            levels[bucket.id] = {
+                any: LevelBucketCreate(),
+                unbreaking: LevelBucketCreate(),
+                stress: LevelBucketCreate(),
+            };
+        }
+        const buckets = levels[bucket.id];
+        if (bucket.bucketIndex >= 0 && bucket.bucketIndex < BUCKETS_PER_ARRAY && buckets) {
+            const n = bucket.bucketIndex;
+            buckets.any.start[n] = bucket.any.start;
+            buckets.any.end[n] = bucket.any.end;
+            buckets.any.count[n] = bucket.any.count;
+            buckets.unbreaking.start[n] = bucket.unbreaking.start;
+            buckets.unbreaking.end[n] = bucket.unbreaking.end;
+            buckets.unbreaking.count[n] = bucket.unbreaking.count;
+            buckets.stress.start[n] = bucket.stress.start;
+            buckets.stress.end[n] = bucket.stress.end;
+            buckets.stress.count[n] = bucket.stress.count;
+        }
+    }
+    return levels;
+};
+
 export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
     30 * 60 * 1000, // 30 minutes
     "collated.json",
     "buckets/campaign.bin",
     {},
-    async (remote) => {
-        const buf = Buffer.from(remote);
-        const parsed = levelBucketsParser.parse(buf);
-        let levels: CampaignBuckets = {};
-        for (const bucket of parsed.buckets) {
-            if (!levels[bucket.id]) {
-                levels[bucket.id] = {
-                    any: LevelBucketCreate(),
-                    unbreaking: LevelBucketCreate(),
-                    stress: LevelBucketCreate(),
-                };
-            }
-            const buckets = levels[bucket.id];
-            if (bucket.bucketIndex >= 0 && bucket.bucketIndex < BUCKETS_PER_ARRAY && buckets) {
-                const n = bucket.bucketIndex;
-                buckets.any.start[n] = bucket.any.start;
-                buckets.any.end[n] = bucket.any.end;
-                buckets.any.count[n] = bucket.any.count;
-                buckets.unbreaking.start[n] = bucket.unbreaking.start;
-                buckets.unbreaking.end[n] = bucket.unbreaking.end;
-                buckets.unbreaking.count[n] = bucket.unbreaking.count;
-                buckets.stress.start[n] = bucket.stress.start;
-                buckets.stress.end[n] = bucket.stress.end;
-                buckets.stress.count[n] = bucket.stress.count;
-            }
-        }
-        return levels;
-    },
+    parseBucketBuffer,
     { responseType: "arraybuffer" }
 );
+
+export const getWeeklyBucket = async (level: WeeklyLevel) => {
+    const resp = await fetch(`${CDN_URL}/buckets/${level.info.id}.bin`);
+    const buf = await resp.arrayBuffer();
+    return await parseBucketBuffer(buf);
+};

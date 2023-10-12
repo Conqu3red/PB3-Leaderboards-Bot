@@ -11,13 +11,8 @@ import { FormatScore } from "./utils/Format";
 import rankToScore from "../json/rank_to_score.json";
 import { World } from "./LevelCode";
 
-export type LevelCategory = "all" /* | "weekly"*/;
+export type LevelCategory = "all" | "weekly";
 export type ScoringMode = "rank" | "score";
-
-const levelFilters = {
-    all: (level: CampaignLevel) => true,
-    weekly: (level: WeeklyLevel) => true,
-};
 
 export interface GlobalEntry {
     steam_id_user: string;
@@ -30,6 +25,7 @@ export interface GlobalOptions {
     levelCategory: LevelCategory;
     scoringMode: ScoringMode;
     worldFilters?: World[];
+    week?: number;
 }
 
 export const defaultOptions: GlobalOptions = {
@@ -38,8 +34,21 @@ export const defaultOptions: GlobalOptions = {
     scoringMode: "rank",
 };
 
+function grouping(baseScore: number, baseRank: number, repeat: number, rank: number) {
+    return baseScore + Math.floor((rank - baseRank) / repeat);
+}
+
+export function convertRankToScore(r: number) {
+    if (r <= 10) return r;
+    else if (r <= 50) return grouping(11, 11, 4, r);
+    else if (r <= 100) return grouping(21, 51, 5, r);
+    else if (r <= 400) return grouping(31, 101, 10, r);
+    else if (r <= 1000) return grouping(61, 401, 20, r);
+    return 100;
+}
+
 async function collateBoards(
-    levels: CampaignLevel[],
+    levels: (CampaignLevel | WeeklyLevel)[],
     options: GlobalOptions
 ): Promise<GlobalEntry[]> {
     let userScores: Map<string, GlobalEntry> = new Map();
@@ -62,7 +71,7 @@ async function collateBoards(
                 rank: NaN,
             };
 
-            if (isRank) entry.value -= 100 - (rankToScore[score.rank - 1] ?? 100);
+            if (isRank) entry.value -= 100 - convertRankToScore(score.rank);
             else
                 entry.value -=
                     options.type === "stress"
@@ -88,14 +97,25 @@ async function collateBoards(
 
 export async function globalLeaderboard(options?: GlobalOptions): Promise<GlobalEntry[] | null> {
     options = options ?? defaultOptions;
-    let levelFilter = levelFilters[options.levelCategory];
-    let campaignLevels = cacheManager.campaignManager.campaignLevels.filter(levelFilter);
-    if (options && options.worldFilters && options.worldFilters.length > 0) {
-        campaignLevels = campaignLevels.filter((level) =>
+    let levels: (CampaignLevel | WeeklyLevel)[] =
+        options.levelCategory == "all"
+            ? cacheManager.campaignManager.campaignLevels
+            : cacheManager.campaignManager.weeklyLevels;
+
+    if (
+        options &&
+        options.worldFilters &&
+        options.worldFilters.length > 0 &&
+        options.levelCategory == "all"
+    ) {
+        levels = (levels as CampaignLevel[]).filter((level) =>
             codeMatchesWorldFilters(level.info.code, options?.worldFilters ?? [])
         );
     }
-    return await collateBoards(campaignLevels, options);
+    if (options && options.week && options.levelCategory == "weekly") {
+        levels = (levels as WeeklyLevel[]).filter((level) => level.info.week == options?.week);
+    }
+    return await collateBoards(levels, options);
 }
 
 export function findUser(board: GlobalEntry[], userID: string): GlobalEntry | null {

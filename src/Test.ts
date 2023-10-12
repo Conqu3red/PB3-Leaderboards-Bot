@@ -13,6 +13,7 @@ import { database, userDB } from "./resources/Lmdb";
 import fs from "fs";
 import SteamUsernames from "./resources/SteamUsernameHandler";
 import { encodeLevelCode } from "./LevelCode";
+import { steamUser } from "./resources/SteamUser";
 
 async function otherStuff() {
     let level = await cacheManager.campaignManager.getByCode("CR-01");
@@ -32,6 +33,11 @@ async function otherStuff() {
         scoringMode: "rank",
     });
     console.timeEnd("globalBoard");
+    if (globalBoard) {
+        console.log(`Global board, length: ${globalBoard.length}`);
+        console.log(globalBoard[0]);
+        console.log(globalBoard[1]);
+    }
 
     console.time("globalBoard");
     globalBoard = await globalLeaderboard({

@@ -90,7 +90,12 @@ class PagedGlobalLeaderboard extends PagedResponder {
                                   this.data.options.globalOptions.type === "stress"
                                       ? "stress"
                                       : "budget"
-                              }.`,
+                              }.` +
+                              ` Showing for ${
+                                  this.data.options.globalOptions.levelCategory == "all"
+                                      ? "campaign"
+                                      : "weekly"
+                              } levels.`,
                     image: {
                         url: `attachment://${uuid}.png`,
                     },
@@ -124,6 +129,13 @@ export default new Command({
                 .setRequired(false)
         )
         .addStringOption((option) =>
+            option
+                .setName("mode")
+                .setDescription("Level type (default: campaign)")
+                .setChoices({ name: "campaign", value: "all" }, { name: "weekly", value: "weekly" })
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
             option.setName("user").setDescription("User to jump to").setRequired(false)
         )
         .addIntegerOption((option) =>
@@ -149,6 +161,7 @@ export default new Command({
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
+        const mode = (args.getString("mode", false) ?? "all") as LevelCategory;
         const user = args.getString("user", false);
         const rank = args.getInteger("rank", false);
         let score = args.getNumber("score", false);
@@ -168,7 +181,7 @@ export default new Command({
 
         const globalOptions: GlobalOptions = {
             type,
-            levelCategory: "all",
+            levelCategory: mode,
             worldFilters: worldFilters,
             scoringMode,
         };

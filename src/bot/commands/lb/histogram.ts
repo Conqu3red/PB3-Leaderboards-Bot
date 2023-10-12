@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 import { DateTime } from "luxon";
 import { arrowComponents, EditMessageType, PagedResponder } from "../../structures/PagedResponder";
 import { error } from "../../utils/embeds";
-import { N_ENTRIES as ENTRIES_PER_PAGE } from "../../../Consts";
+import { N_ENTRIES as ENTRIES_PER_PAGE, WEEKLIES_PER_SEASON } from "../../../Consts";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { WeeklyLevel } from "../../../resources/WeeklyLevel";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
@@ -21,7 +21,7 @@ import {
     renderHistogram,
 } from "../../../ScoreDistribution";
 import { getInterpolatedRank, getPercentile } from "../../../Milestones";
-import { campaignBuckets } from "../../../resources/Buckets";
+import { campaignBuckets, getWeeklyBucket } from "../../../resources/Buckets";
 import { FormatScore } from "../../../utils/Format";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
@@ -34,7 +34,7 @@ export default new Command({
             option
                 .setName("level")
                 .setDescription("Level identifier to display histogram for")
-                .setRequired(true)
+                .setRequired(false)
         )
         .addStringOption((option) =>
             option
@@ -50,26 +50,46 @@ export default new Command({
         .addNumberOption((option) =>
             option.setName("score").setDescription("Score to jump to").setRequired(false)
         )
+        .addIntegerOption((option) =>
+            option.setName("season").setDescription("Weekly Season").setRequired(false)
+        )
+        .addIntegerOption((option) =>
+            option.setName("week").setDescription("Weekl").setRequired(false)
+        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
-        const levelCode = parseLevelCode(args.getString("level", true));
+        const l = args.getString("level", false);
+        const levelCode = l ? parseLevelCode(l) : null;
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
+        const season = args.getInteger("season", false);
+        let week = args.getInteger("week", false);
         let score = args.getNumber("score", false);
         if (type === "stress" && score) score *= 100;
 
-        if (!levelCode) {
+        if (!levelCode && !week) {
             await error(interaction, "Invalid level code.");
             return;
+        } else if (season && !week) {
+            await error(interaction, "You must specify a week as well as a season.");
         }
 
-        const level = await cacheManager.campaignManager.getByCode(levelCode);
+        if (week && season) {
+            week = (season - 1) * WEEKLIES_PER_SEASON + week;
+        }
+
+        let level = week
+            ? await cacheManager.campaignManager.getByWeek(week)
+            : await cacheManager.campaignManager.getByCode(levelCode ?? "");
         if (!level) {
             await error(interaction, "Unknown level.");
             return;
         }
 
-        const allBuckets = await campaignBuckets.get();
+        const allBuckets = week
+            ? await getWeeklyBucket(level as WeeklyLevel)
+            : await campaignBuckets.get();
+
         const levelBuckets = allBuckets[level.info.id];
 
         if (!levelBuckets) {

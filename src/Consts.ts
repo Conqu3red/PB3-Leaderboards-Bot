@@ -12,3 +12,5 @@ export const DATA_DIR = "data";
 export const N_ENTRIES = 12;
 
 export const APP_ID = 1850160;
+
+export const WEEKLIES_PER_SEASON = 10;

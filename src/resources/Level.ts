@@ -6,15 +6,10 @@ import { parseLevelCode } from "../LevelCode";
 import { encodeLevelCode } from "../LevelCode";
 import { database } from "./Lmdb";
 
-export abstract class BaseLevel<I> {
-    info: I;
+export abstract class BaseLevel {
     lastReloadTimeMs: number = 0;
 
-    constructor(info: I) {
-        this.info = info;
-
-        this.lastReloadTimeMs = database.get(`lbt:${this.lmdbKey()}`) ?? 0;
-    }
+    constructor() {}
 
     get(leaderboardType: LeaderboardType): Leaderboard {
         const board: Leaderboard | undefined = database.get(this.lmdbKeyBoard(leaderboardType));
@@ -38,7 +33,10 @@ export abstract class BaseLevel<I> {
     }
 
     abstract compactName(): string;
+    abstract fullName(): string;
     abstract lmdbKey(): string;
+    abstract timeUntilNextReload(): number;
+    abstract getLeaderboardName(leaderboardType: LeaderboardType): string;
 
     lmdbKeyBoard(leaderboardType: LeaderboardType) {
         return `${this.lmdbKey()}:${leaderboardType}`;

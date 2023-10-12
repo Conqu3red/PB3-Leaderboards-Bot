@@ -28,10 +28,12 @@ export interface OldestEntry extends LeaderboardEntry {
 
 export interface WeeklyLevelInfo {
     id: string;
+    author_id: string;
     title: string;
     week: number;
-    payload: string;
     preview: string;
+    budget: number;
+    latest: boolean;
 }
 
 export type LeaderboardType = "any" | "unbreaking" | "stress";

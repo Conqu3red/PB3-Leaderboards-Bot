@@ -12,7 +12,8 @@ import { FormatScore } from "./utils/Format";
 export interface GlobalPositions {
     all_rank: GlobalEntry | null;
     all_score: GlobalEntry | null;
-    weekly: GlobalEntry | null;
+    weekly_rank: GlobalEntry | null;
+    weekly_score: GlobalEntry | null;
 }
 
 export interface ScoreCount {
@@ -50,7 +51,7 @@ export const defaultOptions: Options = {
 
 export const scoreCountThresholds = [1, 10, 100, 1000];
 
-function isCampgainLevel(level: BaseLevel<any>): level is CampaignLevel {
+function isCampgainLevel(level: BaseLevel): level is CampaignLevel {
     return (level as CampaignLevel).info.code !== undefined;
 }
 
@@ -63,7 +64,10 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
         scoreCountThresholds.map((value) => [value, { overall: 0, weekly: 0 }])
     );
 
-    const levels = [...cacheManager.campaignManager.campaignLevels];
+    const levels = [
+        ...cacheManager.campaignManager.campaignLevels,
+        ...cacheManager.campaignManager.weeklyLevels,
+    ];
 
     for (const level of levels) {
         let board = level.get(options.type);
@@ -113,7 +117,22 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
             })) ?? [],
             owner
         ),
-        weekly: null,
+        weekly_rank: findUser(
+            (await globalLeaderboard({
+                levelCategory: "weekly",
+                type: options.type,
+                scoringMode: "score",
+            })) ?? [],
+            owner
+        ),
+        weekly_score: findUser(
+            (await globalLeaderboard({
+                levelCategory: "weekly",
+                type: options.type,
+                scoringMode: "score",
+            })) ?? [],
+            owner
+        ),
     };
 
     return {

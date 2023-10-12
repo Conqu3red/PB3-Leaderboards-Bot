@@ -1,7 +1,7 @@
 import { Leaderboard, LeaderboardEntry, LeaderboardType } from "../../../LeaderboardInterface";
 import { encodeLevelCode, LevelCode, parseLevelCode } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
-import { CampaignLevel } from "../../../resources/CampaignLevel";
+import { CampaignLevel, isCampgainLevel } from "../../../resources/CampaignLevel";
 import { renderBoard, renderBoardComparison } from "../../../TopLeaderboard";
 import { ExtendedClient } from "../../structures/Client";
 import { Command } from "../../structures/Command";
@@ -9,11 +9,12 @@ import { v4 as uuidv4 } from "uuid";
 import { DateTime } from "luxon";
 import { arrowComponents, EditMessageType, PagedResponder } from "../../structures/PagedResponder";
 import { error } from "../../utils/embeds";
-import { N_ENTRIES as ENTRIES_PER_PAGE } from "../../../Consts";
+import { N_ENTRIES as ENTRIES_PER_PAGE, WEEKLIES_PER_SEASON } from "../../../Consts";
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
+import { WeeklyLevel } from "../../../resources/WeeklyLevel";
 
 interface LeaderboardOptions {
     type: LeaderboardType;
@@ -36,13 +37,13 @@ function getBoardIndex(board: Leaderboard, options: LeaderboardOptions) {
 }
 
 interface Data {
-    level: CampaignLevel;
+    level: CampaignLevel | WeeklyLevel;
     board: Leaderboard;
     options: LeaderboardOptions;
     updateTime: number;
 }
 
-class PagedLeaderboard extends PagedResponder {
+export class PagedLeaderboard extends PagedResponder {
     data: Data;
     constructor(client: ExtendedClient, interaction: CommandInteraction, data: Data) {
         let pageCount = Math.ceil(data.board.top1000.length / ENTRIES_PER_PAGE);
@@ -66,9 +67,9 @@ class PagedLeaderboard extends PagedResponder {
             content: "",
             embeds: [
                 {
-                    title: `Leaderboard for ${encodeLevelCode(this.data.level.info.code)}: ${
-                        this.data.level.info.name
-                    }${this.data.options.type !== "any" ? ` (${this.data.options.type})` : ""}`,
+                    title: `Leaderboard for ${this.data.level.compactName()}: ${this.data.level.fullName()}${
+                        this.data.options.type !== "any" ? ` (${this.data.options.type})` : ""
+                    }`,
                     description: `Showing top ${this.data.board.top1000.length.toLocaleString(
                         "en-US"
                     )} entries out of ${this.data.board.leaderboard_entry_count.toLocaleString(
@@ -82,6 +83,9 @@ class PagedLeaderboard extends PagedResponder {
                     },
                     color: EMBED_COLOR,
                     author: EMBED_AUTHOR,
+                    ...(!isCampgainLevel(this.data.level) && {
+                        thumbnail: { url: this.data.level.info.preview },
+                    }),
                 },
             ],
             components: [arrowComponents],
@@ -146,6 +150,7 @@ export default new Command({
         }
 
         const level = await cacheManager.campaignManager.getByCode(levelCode);
+
         if (!level) {
             await error(interaction, "Unknown level.");
             return;

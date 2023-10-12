@@ -3,6 +3,7 @@ import { LeaderboardType } from "./LeaderboardInterface";
 import { campaignBuckets, LevelBucket } from "./resources/Buckets";
 import { CampaignLevel } from "./resources/CampaignLevel";
 import { FormatScore } from "./utils/Format";
+import { WeeklyLevel } from "./resources/WeeklyLevel";
 
 export interface HistogramBucket {
     f: number;
@@ -27,7 +28,7 @@ export function collectBuckets(levelBucket: LevelBucket): HistogramBucket[] {
 }
 
 export async function getHistogramBuckets(
-    level: CampaignLevel,
+    level: CampaignLevel | WeeklyLevel,
     type: LeaderboardType
 ): Promise<HistogramBucket[] | null> {
     const allBuckets = await campaignBuckets.get();

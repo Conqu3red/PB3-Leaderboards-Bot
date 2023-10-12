@@ -16,7 +16,7 @@ export interface FoundUser {
 }
 
 export async function findAllUsersWithUsernameOnLevel(
-    level: BaseLevel<any>,
+    level: BaseLevel,
     username: string
 ): Promise<Map<string, FoundUser>> {
     username = username.toLowerCase();
@@ -43,7 +43,7 @@ export async function findAllUsersWithUsernameOnLevel(
 }
 
 export async function findAllUsersWithUsername(
-    levels: BaseLevel<any>[],
+    levels: BaseLevel[],
     username: string
 ): Promise<FoundUser[]> {
     let users: Map<string, FoundUser> = new Map();

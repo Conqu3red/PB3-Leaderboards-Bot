@@ -9,7 +9,15 @@ import SteamUser from "steam-user";
 import RateLimit from "../utils/RateLimit";
 import { LeaderboardType } from "../LeaderboardInterface";
 
-export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
+export class CampaignLevel extends BaseLevel {
+    info: CampaignLevelInfo;
+
+    constructor(info: CampaignLevelInfo) {
+        super();
+        this.info = info;
+        this.lastReloadTimeMs = database.get(`lbt:${this.lmdbKey()}`) ?? 0;
+    }
+
     lmdbKey(): string {
         return this.info.id;
     }
@@ -20,6 +28,10 @@ export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
 
     compactName(): string {
         return encodeLevelCode(this.info.code);
+    }
+
+    fullName(): string {
+        return this.info.name;
     }
 
     timeUntilNextReload(): number {
@@ -37,4 +49,8 @@ export class CampaignLevel extends BaseLevel<CampaignLevelInfo> {
         if (leaderboardType !== "any") postfix = "_" + leaderboardType;
         return `${this.info.id}${postfix}`;
     }
+}
+
+export function isCampgainLevel(level: BaseLevel): level is CampaignLevel {
+    return (level as CampaignLevel).info.code !== undefined;
 }

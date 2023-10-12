@@ -15,16 +15,25 @@ import fs from "fs";
 import { DATA_DIR } from "../Consts";
 import { GlobalHistory } from "./GlobalHistory";
 import { SumOfBestHistory } from "./SumOfBestHistory";
+import { WeeklyLevel } from "./WeeklyLevel";
+import { weeklyIndex } from "./WeeklyIndex";
+import { BaseLevel } from "./Level";
 
 export class CampaignManager {
     static CAMPAIGN_LEVEL_RELOAD_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour
+    static WEEKLY_LEVEL_RELOAD_INTERVAL = 1 * 15 * 60 * 1000; // 15 mins
+    static OLD_WEEKLY_LEVEL_RELOAD_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
     static RATELIMIT_MS = 1000;
     static ID_RELOAD_INTERVAL = 80 * 60 * 60 * 1000; // 80 hours
     campaignLevels: CampaignLevel[] = [];
+    weeklyLevels: WeeklyLevel[] = [];
 
     async populate() {
         let levelInfos = await loadCampaignLevelInfos();
         this.campaignLevels = levelInfos.map((info) => new CampaignLevel(info));
+
+        let weeklyInfos = await weeklyIndex.get();
+        this.weeklyLevels = weeklyInfos.map((info) => new WeeklyLevel(info));
     }
 
     async maybeReload() {
@@ -42,11 +51,18 @@ export class CampaignManager {
                 await this.reload(level);
             }
         }
+
+        for (const level of this.weeklyLevels) {
+            if (level.needsReload()) {
+                await this.reload(level);
+            }
+        }
     }
 
     async timeToNextReload(): Promise<number> {
         return Math.min(
-            ...(await Promise.all(this.campaignLevels.map((level) => level.timeUntilNextReload())))
+            ...(await Promise.all(this.campaignLevels.map((level) => level.timeUntilNextReload()))),
+            ...(await Promise.all(this.weeklyLevels.map((level) => level.timeUntilNextReload())))
         );
     }
 
@@ -66,8 +82,13 @@ export class CampaignManager {
         return level ?? null;
     }
 
+    getByWeek(week: number): WeeklyLevel | null {
+        let level = this.weeklyLevels.find((level) => level.info.week == week);
+        return level ?? null;
+    }
+
     async getLeaderboardId(
-        level: CampaignLevel,
+        level: BaseLevel,
         leaderboardType: LeaderboardType
     ): Promise<number | null> {
         const boardName = level.getLeaderboardName(leaderboardType);
@@ -83,7 +104,7 @@ export class CampaignManager {
         return id;
     }
 
-    async reloadId(level: CampaignLevel, leaderboardType: LeaderboardType): Promise<boolean> {
+    async reloadId(level: BaseLevel, leaderboardType: LeaderboardType): Promise<boolean> {
         const boardName = level.getLeaderboardName(leaderboardType);
         let board: ClientLBSFindOrCreateLBResponse;
         try {
@@ -97,7 +118,7 @@ export class CampaignManager {
         return true;
     }
 
-    async invalidateId(level: CampaignLevel, leaderboardType: LeaderboardType) {
+    async invalidateId(level: BaseLevel, leaderboardType: LeaderboardType) {
         const boardName = level.getLeaderboardName(leaderboardType);
         await database.remove("id:" + boardName);
         await database.remove("idt:" + boardName);
@@ -108,7 +129,7 @@ export class CampaignManager {
             top1000: entries.entries.map((entry) => ({
                 steam_id_user: entry.steam_id_user,
                 score: entry.score,
-                didBreak: entry.details != null && entry.details.readUint32LE(0) != 0,
+                didBreak: entry.details != null && (entry.details.readUint32LE(0) & 1) != 0, // After physics patch, all scores have flag 0x02
                 rank: entry.global_rank,
             })),
             leaderboard_entry_count: entries.leaderboard_entry_count,
@@ -116,7 +137,7 @@ export class CampaignManager {
     }
 
     async reloadType(
-        level: CampaignLevel,
+        level: BaseLevel,
         leaderboardType: LeaderboardType,
         reloadId: boolean,
         rateLimit: RateLimit
@@ -193,7 +214,7 @@ export class CampaignManager {
         }
     }
 
-    async reload(level: CampaignLevel) {
+    async reload(level: BaseLevel) {
         const rateLimit = new RateLimit(CampaignManager.RATELIMIT_MS);
 
         const last_id_reload: number = database.get("idt:" + level.lmdbKey()) ?? 0;
@@ -222,6 +243,10 @@ export class CacheManager {
     async maybeReload() {
         await this.campaignManager.maybeReload();
         if (campaignBuckets.needsReload()) await campaignBuckets.reload();
+        if (weeklyIndex.needsReload()) {
+            await weeklyIndex.reload();
+            await this.campaignManager.populate();
+        }
 
         if (GlobalHistory.timeUntilNextReload() < 0) await GlobalHistory.reloadAll();
         if (SumOfBestHistory.timeUntilNextReload() < 0) await SumOfBestHistory.reloadAll();
@@ -272,7 +297,8 @@ export class CacheManager {
             try {
                 let nextReloadTime = Math.min(
                     await this.campaignManager.timeToNextReload(),
-                    await campaignBuckets.timeUntilNextReload(),
+                    campaignBuckets.timeUntilNextReload(),
+                    weeklyIndex.timeUntilNextReload(),
                     GlobalHistory.timeUntilNextReload(),
                     SumOfBestHistory.timeUntilNextReload()
                 );
