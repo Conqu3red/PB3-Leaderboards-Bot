@@ -16,6 +16,7 @@ export const WORLDS = [
     "SC",
     "DS",
     "TT",
+    "RTA",
     "AT",
     "FR",
 ] as const;
