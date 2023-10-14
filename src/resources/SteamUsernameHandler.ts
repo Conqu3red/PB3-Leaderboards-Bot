@@ -183,7 +183,7 @@ export default class SteamUsernames {
     }
 
     static stripTags(username: string): string {
-        const replaced = username.replaceAll(UNITY_STYLE_TAG_REGEX, "");
+        const replaced = username.replaceAll(UNITY_STYLE_TAG_REGEX, "").trim();
         if (replaced.length > 0) return replaced;
         return username;
     }
