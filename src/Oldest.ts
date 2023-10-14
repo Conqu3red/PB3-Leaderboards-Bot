@@ -104,6 +104,7 @@ export type LevelCategory = "all" | "regular" | "challenge" */
 export interface OldestFilters {
     levelCode?: LevelCode;
     userFilter?: UserFilter;
+    includeTies?: boolean;
 }
 
 export interface PopulatedOldestEntry extends UserStreakTracker {
@@ -130,8 +131,12 @@ export async function getOldest(
                 })
                 .filter(
                     (entry) =>
-                        !filters.userFilter ||
-                        matchesUserFilter(filters.userFilter, entry.latestScore.steam_id_user)
+                        (!filters.userFilter ||
+                            matchesUserFilter(
+                                filters.userFilter,
+                                entry.latestScore.steam_id_user
+                            )) &&
+                        (filters.includeTies || entry.firstToGetThisScore)
                 )
         );
 

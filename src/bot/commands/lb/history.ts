@@ -140,7 +140,7 @@ export default new Command({
                         )
                         .setRequired(false)
                 )
-                .addStringOption((option) =>
+                .addBooleanOption((option) =>
                     option
                         .setName("include_ties")
                         .setDescription(
@@ -171,7 +171,7 @@ export default new Command({
                         .setChoices(...WORLDS.map((w) => ({ name: w, value: w })))
                         .setRequired(false)
                 )
-                .addStringOption((option) =>
+                .addBooleanOption((option) =>
                     option
                         .setName("include_ties")
                         .setDescription(
@@ -193,7 +193,7 @@ export default new Command({
         if (subcommand === "level") {
             const levelCode = parseLevelCode(args.getString("level", true));
             type = (args.getString("type", false) ?? "any") as LeaderboardType;
-            includeTies = args.getBoolean("includeTies", false) ?? false;
+            includeTies = args.getBoolean("include_ties", false) ?? false;
 
             if (!levelCode) {
                 await error(interaction, "Invalid level code.");
@@ -214,7 +214,7 @@ export default new Command({
             type = (args.getString("type", false) ?? "any") as LeaderboardType;
             const world = args.getString("world", false);
             scoringMode = (args.getString("scoring_mode", false) ?? "rank") as ScoringMode;
-            includeTies = args.getBoolean("includeTies", false) ?? false;
+            includeTies = args.getBoolean("include_ties", false) ?? false;
 
             let parsedWorld: World | null = null;
 
@@ -234,7 +234,7 @@ export default new Command({
         } else {
             type = (args.getString("type", false) ?? "any") as LeaderboardType;
             const world = args.getString("world", false);
-            includeTies = args.getBoolean("includeTies", false) ?? false;
+            includeTies = args.getBoolean("include_ties", false) ?? false;
 
             let parsedWorld: World | null = null;
 

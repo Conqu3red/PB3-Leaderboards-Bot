@@ -88,12 +88,19 @@ export default new Command({
         .addStringOption((option) =>
             option.setName("user").setDescription("User to show").setRequired(false)
         )
+        .addBooleanOption((option) =>
+            option
+                .setName("include_ties")
+                .setDescription("Include events when a user ties first place (default: false)")
+                .setRequired(false)
+        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const levelCode = args.getString("level", false);
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false) ?? undefined;
+        const includeTies = args.getBoolean("include_ties", false) ?? false;
 
         let userFilter: UserFilter | null = null;
         if (user) {
@@ -108,6 +115,7 @@ export default new Command({
             board: await getOldest(type, {
                 levelCode: levelCode ? parseLevelCode(levelCode) ?? undefined : undefined,
                 userFilter: userFilter ?? undefined,
+                includeTies,
             }),
             options: { type },
         });
