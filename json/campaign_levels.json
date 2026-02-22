@@ -660,6 +660,78 @@
         "budget": 100000
     },
     {
+        "id": "141",
+        "name": "Air Handling",
+        "code": "FD-01",
+        "budget": 50000
+    },
+    {
+        "id": "142",
+        "name": "Scale Issue",
+        "code": "FD-02",
+        "budget": 90000
+    },
+    {
+        "id": "143",
+        "name": "plainLevel.bridge",
+        "code": "FD-03",
+        "budget": 100000
+    },
+    {
+        "id": "144",
+        "name": "Mass Affect",
+        "code": "FD-04",
+        "budget": 90001
+    },
+    {
+        "id": "145",
+        "name": "Void Return()",
+        "code": "FD-05",
+        "budget": 65536
+    },
+    {
+        "id": "146",
+        "name": "Hard Stop",
+        "code": "FD-06",
+        "budget": 30000
+    },
+    {
+        "id": "147",
+        "name": "Invalid Anchor",
+        "code": "FD-07",
+        "budget": 40000
+    },
+    {
+        "id": "148",
+        "name": "Free Up Space",
+        "code": "FD-08",
+        "budget": 35000
+    },
+    {
+        "id": "149",
+        "name": "Crash On Launch",
+        "code": "FD-09",
+        "budget": 53211
+    },
+    {
+        "id": "150",
+        "name": "Going Online",
+        "code": "FD-10",
+        "budget": 70000
+    },
+    {
+        "id": "151",
+        "name": "Access Denied",
+        "code": "FD-11",
+        "budget": 40000
+    },
+    {
+        "id": "152",
+        "name": "Jump the Shark",
+        "code": "FD-12",
+        "budget": 190000
+    },
+    {
         "id": "161",
         "name": "Bully Bus",
         "code": "TT-01",

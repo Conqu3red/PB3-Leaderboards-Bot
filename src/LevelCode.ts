@@ -15,6 +15,7 @@ export const WORLDS = [
     "RMT",
     "SC",
     "DS",
+    "FD",
     "TT",
     "RTA",
     "AT",

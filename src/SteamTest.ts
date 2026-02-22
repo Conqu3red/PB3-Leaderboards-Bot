@@ -32,9 +32,13 @@ user.on("loggedOn", async (details) => {
     );
     console.log(entryResult);
 
+    console.log("Trying to lookup users...");
+    let lookupIds = entryResult.entries.map((entry) => entry.steam_id_user).slice(0,90);
+    //console.log(lookupIds);
+
     let userResult = await LookupUsers(
         api,
-        entryResult.entries.map((entry) => entry.steam_id_user),
+        lookupIds,
         user.cellID
     );
     //console.log(userResult);

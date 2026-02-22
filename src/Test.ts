@@ -162,7 +162,7 @@ async function main() {
         await findAllUsersWithUsername(cacheManager.campaignManager.campaignLevels, "alex")
     ); */
 
-    let buckets = await campaignBuckets.get();
+    /* let buckets = await campaignBuckets.get();
     let level2 = await cacheManager.campaignManager.getByCode("CR-01");
     if (level2) {
         let bucket = buckets[level2.info.id];
@@ -176,7 +176,7 @@ async function main() {
             });
             fs.writeFileSync(`./test.png`, buf);
         }
-    }
+    } */
 
     /* for (const level of cacheManager.campaignManager.campaignLevels) {
         let levelBuckets = buckets[level.info.id];

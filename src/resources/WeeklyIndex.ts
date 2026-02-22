@@ -36,6 +36,8 @@ export const weeklyIndex = new SimpleResource<WeeklyLevelInfo[], ArrayBuffer>(
             });
         }
 
+        weeks.sort((a,b) => a.week - b.week);
+
         if (weeks.length > 0) weeks[weeks.length - 1].latest = true;
 
         return weeks;

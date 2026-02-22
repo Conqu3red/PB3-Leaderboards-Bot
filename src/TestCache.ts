@@ -5,6 +5,7 @@ import { asyncSetTimeout } from "./utils/asyncTimeout";
 import { steamAPI, steamUser } from "./resources/SteamUser";
 import SteamUser from "steam-user";
 import { weeklyIndex } from "./resources/WeeklyIndex";
+import SteamUsernames from "./resources/SteamUsernameHandler";
 
 require("dotenv").config();
 const { STEAM_WEBAPI_KEY, STEAM_USERNAME, STEAM_PASSWORD } = process.env;
@@ -28,6 +29,12 @@ steamUser.logOn({
 steamUser.on("loggedOn", async (details) => {
     console.log("Steam user logged in!");
     console.log(details);
+
+    console.log(SteamUsernames.stripTags("<#0000><br><@00000000000000000>"));
+    console.log(SteamUsernames.stripTags("<b><#F00>Mi<#FF0>ne<#0FF>Cxt"));
+    
+    await weeklyIndex.reload();
+    console.log("Weekly index reloaded");
 
     await asyncSetTimeout(2000);
 

@@ -24,8 +24,8 @@ export class WeeklyLevel extends BaseLevel {
     }
 
     compactName(): string {
-        return `Season ${Math.floor(this.info.week / WEEKLIES_PER_SEASON) + 1} Week ${
-            this.info.week % WEEKLIES_PER_SEASON
+        return `Season ${Math.floor((this.info.week - 1) / WEEKLIES_PER_SEASON) + 1} Week ${
+            ((this.info.week - 1) % WEEKLIES_PER_SEASON) + 1
         }`;
     }
 
