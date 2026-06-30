@@ -1,9 +1,9 @@
 {
     "compilerOptions": {
         "lib": ["ESNext", "DOM"],
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "target": "ESNext",
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "target": "es2022",
         "outDir": "dist",
         "sourceMap": true,
         "esModuleInterop": true,
@@ -16,11 +16,13 @@
         "importHelpers": false,
         "strict": true,
         "declaration": true,
-        "declarationDir": "dist/types"
+        "declarationDir": "dist/types",
+        "types": ["node"]
     },
-    "include": ["src", "environment.d.ts"],
+    "include": ["src", "json", "environment.d.ts"],
     "exclude": ["node_modules", "**/*.spec.ts"],
     "ts-node": {
-        "files": true
+        "files": true,
+        "esm": true
     }
 }

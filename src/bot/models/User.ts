@@ -1,5 +1,5 @@
 import { Table, Column, Model, DataType, PrimaryKey } from "sequelize-typescript";
-import { InferAttributes, InferCreationAttributes } from "sequelize/types";
+import { InferAttributes, InferCreationAttributes } from "sequelize";
 
 @Table
 export default class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {

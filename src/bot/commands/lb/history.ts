@@ -1,4 +1,4 @@
-import { LeaderboardType } from "../../../LeaderboardInterface";
+import { GameFilter, LeaderboardType } from "../../../LeaderboardInterface";
 import { encodeLevelCode, parseLevelCode, World, WORLDS } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { ExtendedClient } from "../../structures/Client";
@@ -18,7 +18,7 @@ import {
     renderTimeline,
 } from "../../../History";
 import { ScoringMode } from "../../../GlobalLeaderboard";
-import { parseWorldFilter } from "../../../utils/WorldFilter";
+import { formatWorldFilter, parseWorldFilter, VALID_WORLDFILTER_STRINGS, WorldFilter } from "../../../utils/WorldFilter";
 
 interface Data {
     timeline: Timeline;
@@ -83,7 +83,7 @@ export default new Command({
                 .addStringOption((option) =>
                     option
                         .setName("level")
-                        .setDescription("Level identifier to display histogram for")
+                        .setDescription("Level identifier to display history for")
                         .setRequired(true)
                 )
                 .addStringOption((option) =>
@@ -125,7 +125,19 @@ export default new Command({
                     option
                         .setName("world")
                         .setDescription("Display for specific world")
-                        .setChoices(...WORLDS.map((w) => ({ name: w, value: w })))
+                        .setRequired(false)
+                )
+                .addStringOption((option) =>
+                    option
+                        .setName("game")
+                        .setDescription(
+                            "Which games to include leaderboards from"
+                        )
+                        .setChoices(
+                            { name: "all", value: "all" },
+                            { name: "pb2", value: "pb2" },
+                            { name: "pb3", value: "pb3" }
+                        )
                         .setRequired(false)
                 )
                 .addStringOption((option) =>
@@ -171,6 +183,19 @@ export default new Command({
                         .setChoices(...WORLDS.map((w) => ({ name: w, value: w })))
                         .setRequired(false)
                 )
+                .addStringOption((option) =>
+                    option
+                        .setName("game")
+                        .setDescription(
+                            "Which games to include leaderboards from"
+                        )
+                        .setChoices(
+                            { name: "all", value: "all" },
+                            { name: "pb2", value: "pb2" },
+                            { name: "pb3", value: "pb3" }
+                        )
+                        .setRequired(false)
+                )
                 .addBooleanOption((option) =>
                     option
                         .setName("include_ties")
@@ -189,6 +214,7 @@ export default new Command({
         let timeline: Timeline;
         let type: LeaderboardType;
         let scoringMode: ScoringMode = "score";
+        let gameFilter: GameFilter = "all";
         let title: string = "";
         if (subcommand === "level") {
             const levelCode = parseLevelCode(args.getString("level", true));
@@ -213,10 +239,11 @@ export default new Command({
         } else if (subcommand == "global") {
             type = (args.getString("type", false) ?? "any") as LeaderboardType;
             const world = args.getString("world", false);
+            gameFilter = (args.getString("game", false) ?? "all") as GameFilter;
             scoringMode = (args.getString("scoring_mode", false) ?? "rank") as ScoringMode;
             includeTies = args.getBoolean("include_ties", false) ?? false;
 
-            let parsedWorld: World | null = null;
+            let parsedWorld: WorldFilter | null = null;
 
             if (world) {
                 const filter = parseWorldFilter(world);
@@ -227,16 +254,17 @@ export default new Command({
                 }
             }
 
-            timeline = getGlobalTimeline(type, parsedWorld, scoringMode, includeTies);
+            timeline = getGlobalTimeline(type, parsedWorld, scoringMode, includeTies, gameFilter);
 
             const by = scoringMode === "rank" ? "rank" : type === "stress" ? "stress" : "budget";
             title = `Timeline for Global leaderboard (${type}, by ${by}, world: ${world ?? "all"})`;
         } else {
             type = (args.getString("type", false) ?? "any") as LeaderboardType;
             const world = args.getString("world", false);
+            gameFilter = (args.getString("game", false) ?? "all") as GameFilter;
             includeTies = args.getBoolean("include_ties", false) ?? false;
 
-            let parsedWorld: World | null = null;
+            let parsedWorld: WorldFilter | null = null;
 
             if (world) {
                 const filter = parseWorldFilter(world);
@@ -247,7 +275,7 @@ export default new Command({
                 }
             }
 
-            timeline = getSumOfBestTimeline(type, parsedWorld, includeTies);
+            timeline = getSumOfBestTimeline(type, parsedWorld, includeTies, gameFilter);
             title = `Timeline for Sum Of Best (${type}, world: ${world ?? "all"})`;
         }
 

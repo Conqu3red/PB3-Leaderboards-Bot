@@ -5,6 +5,7 @@ import { RemoteResource } from "./RemoteResource";
 import { parseLevelCode } from "../LevelCode";
 import { encodeLevelCode } from "../LevelCode";
 import { database } from "./Lmdb";
+import { APP_ID, PB2_APP_ID } from "../Consts";
 
 export abstract class BaseLevel {
     lastReloadTimeMs: number = 0;
@@ -32,11 +33,14 @@ export abstract class BaseLevel {
         await database.put(`${this.lmdbKeyBoard(leaderboardType)}:history`, history);
     }
 
+    appId(): number { return this.isPB2() ? PB2_APP_ID : APP_ID; }
+
     abstract compactName(): string;
     abstract fullName(): string;
     abstract lmdbKey(): string;
     abstract timeUntilNextReload(): number;
     abstract getLeaderboardName(leaderboardType: LeaderboardType): string;
+    abstract isPB2(): boolean;
 
     lmdbKeyBoard(leaderboardType: LeaderboardType) {
         return `${this.lmdbKey()}:${leaderboardType}`;

@@ -10,6 +10,7 @@ import { CommandType } from "../typings/Command";
 import glob from "glob";
 import { promisify } from "util";
 import { Event } from "./Event";
+import { pathToFileURL } from "node:url";
 
 const globPromise = promisify(glob);
 
@@ -28,7 +29,7 @@ export class ExtendedClient extends Client {
     }
 
     async importFile(filePath: string) {
-        return (await import(filePath)).default;
+        return (await import(pathToFileURL(filePath).href)).default;
     }
 
     async registerCommands(commands: ApplicationCommandDataResolvable[]) {

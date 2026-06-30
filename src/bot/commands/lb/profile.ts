@@ -1,4 +1,4 @@
-import { LeaderboardType } from "../../../LeaderboardInterface";
+import { GameFilter, LeaderboardType } from "../../../LeaderboardInterface";
 import { ExtendedClient } from "../../structures/Client";
 import { Command } from "../../structures/Command";
 import { v4 as uuidv4 } from "uuid";
@@ -51,6 +51,8 @@ class PagedProfileLeaderboard extends PagedResponder {
         let details: string[] = [];
         if (this.data.options.profileOptions.type !== "any")
             details.push(this.data.options.profileOptions.type);
+        if (this.data.options.profileOptions.game !== "all")
+            details.push(this.data.options.profileOptions.game.toUpperCase());
         return details.length === 0 ? "" : `(${details.join(", ")})`;
     }
 
@@ -188,15 +190,27 @@ export default new Command({
                 )
                 .setRequired(false)
         )
+        .addStringOption((option) =>
+            option
+                .setName("game")
+                .setDescription(
+                    "Which games to include leaderboards from"
+                )
+                .setChoices(
+                    { name: "all", value: "all" },
+                    { name: "pb2", value: "pb2" },
+                    { name: "pb3", value: "pb3" }
+                )
+                .setRequired(false)
+        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const user = args.getString("user", false);
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
+        const game = (args.getString("game", false) ?? "all") as GameFilter;
 
-        const profileOptions: Options = {
-            type,
-        };
+        const profileOptions: Options = {type, game};
 
         let userFilter: UserFilter | null = null;
         if (user) {

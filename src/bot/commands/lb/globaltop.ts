@@ -1,4 +1,4 @@
-import { LeaderboardType } from "../../../LeaderboardInterface";
+import { GameFilter, LeaderboardType } from "../../../LeaderboardInterface";
 import { ExtendedClient } from "../../structures/Client";
 import { Command } from "../../structures/Command";
 import { v4 as uuidv4 } from "uuid";
@@ -16,7 +16,7 @@ import {
 import { AttachmentBuilder, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
-import { parseManyWorldFilters, parseWorldFilter } from "../../../utils/WorldFilter";
+import { formatWorldFilter, parseManyWorldFilters, parseWorldFilter, WorldFilter } from "../../../utils/WorldFilter";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 import { World } from "../../../LevelCode";
 
@@ -61,11 +61,13 @@ class PagedGlobalLeaderboard extends PagedResponder {
         details.push(`${this.data.options.globalOptions.levelCategory} levels`);
         const worldFilters = this.data.options.globalOptions.worldFilters;
         if (worldFilters && worldFilters.length > 0) {
-            const worlds = worldFilters.join(", ");
+            const worlds = worldFilters.map(formatWorldFilter).join(", ");
             details.push(`World ${worlds}`);
         }
         if (this.data.options.globalOptions.type != "any")
             details.push(this.data.options.globalOptions.type);
+        if (this.data.options.globalOptions.game !== "all")
+            details.push(this.data.options.globalOptions.game.toUpperCase());
         return details.length === 0 ? "" : `(${details.join(", ")})`;
     }
 
@@ -146,6 +148,19 @@ export default new Command({
         )
         .addStringOption((option) =>
             option
+                .setName("game")
+                .setDescription(
+                    "Which games to include leaderboards from"
+                )
+                .setChoices(
+                    { name: "all", value: "all" },
+                    { name: "pb2", value: "pb2" },
+                    { name: "pb3", value: "pb3" }
+                )
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
                 .setName("world")
                 .setDescription("Display for specific world(s)")
                 .setRequired(false)
@@ -167,10 +182,12 @@ export default new Command({
         let score = args.getNumber("score", false);
         const world = args.getString("world", false);
         const scoringMode = (args.getString("scoring_mode", false) ?? "rank") as ScoringMode;
+        let gameFilter = (args.getString("game", false) ?? "all") as GameFilter;
 
         if (type === "stress" && score) score *= 100;
+        if (type === "stress") gameFilter = "pb3"; // Only pb3 levels have stress leaderboards
 
-        let worldFilters: World[] = [];
+        let worldFilters: WorldFilter[] = [];
         if (world) {
             worldFilters = parseManyWorldFilters(world);
             if (worldFilters.length === 0) {
@@ -184,6 +201,7 @@ export default new Command({
             levelCategory: mode,
             worldFilters: worldFilters,
             scoringMode,
+            game: gameFilter
         };
 
         let userFilter: UserFilter | null = null;

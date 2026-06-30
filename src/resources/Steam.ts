@@ -78,7 +78,7 @@ export class ExpandedSteamUser extends SteamUser {
         return SteamUserMessages._decodeProto(proto, encoded);
     }
 
-    GetLeaderboard(name: string): Promise<ClientLBSFindOrCreateLBResponse> {
+    GetLeaderboard(name: string, app_id: number = APP_ID): Promise<ClientLBSFindOrCreateLBResponse> {
         return new Promise((resolve, reject) => {
             const timer = setTimeout(
                 () => reject(new Error(`GetLeaderboard timed out after ${STEAM_TIMEOUT} ms`)),
@@ -89,11 +89,11 @@ export class ExpandedSteamUser extends SteamUser {
                 {
                     msg: SteamUser.EMsg.ClientLBSFindOrCreateLB,
                     proto: {
-                        routing_appid: APP_ID,
+                        routing_appid: app_id,
                     },
                 },
                 {
-                    app_id: APP_ID,
+                    app_id: app_id,
                     leaderboard_name: name,
                     create_if_not_found: false,
                 },
@@ -121,7 +121,8 @@ export class ExpandedSteamUser extends SteamUser {
         range_start: number,
         range_end: number,
         leaderboard_data_request: SteamUser.ELeaderboardDataRequest,
-        steamids?: string[]
+        steamids?: string[],
+        app_id: number = APP_ID
     ): Promise<ClientLBSGetLBEntriesResponse> {
         return new Promise((resolve, reject) => {
             const timer = setTimeout(
@@ -134,11 +135,11 @@ export class ExpandedSteamUser extends SteamUser {
                 {
                     msg: SteamUser.EMsg.ClientLBSGetLBEntries,
                     proto: {
-                        routing_appid: APP_ID,
+                        routing_appid: app_id,
                     },
                 },
                 {
-                    app_id: APP_ID,
+                    app_id: app_id,
                     leaderboard_id,
                     range_start,
                     range_end,

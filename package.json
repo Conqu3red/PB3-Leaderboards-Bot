@@ -10,7 +10,7 @@
         "binary-parser": "^2.1.0",
         "canvas": "^2.11.0",
         "canvas-table": "^0.3.0",
-        "discord.js": "^14.11.0",
+        "discord.js": "^14.26.4",
         "dotenv": "^16.0.1",
         "glob": "^8.0.3",
         "lmdb": "^2.7.9",
@@ -26,10 +26,10 @@
     "scripts": {
         "build": "npx tsc --build",
         "bot": "npm run build && node dist/src/bot/Index.js",
-        "bot:dev": "ts-node-dev --files src/bot/Index.ts",
-        "steam": "ts-node-dev --files src/SteamTest.ts",
-        "cache": "ts-node-dev --files src/TestCache.ts",
-        "run": "ts-node-dev --files src/Test.ts",
+        "bot:dev": "tsx watch src/bot/Index.ts",
+        "steam": "tsx watch src/SteamTest.ts",
+        "cache": "tsx watch src/TestCache.ts",
+        "run": "tsx watch src/Test.ts",
         "test": "ts-mocha --type-check -p tsconfig.json tests/**/*.test.ts"
     },
     "devDependencies": {
@@ -37,7 +37,7 @@
         "@types/glob": "^7.2.0",
         "@types/luxon": "^2.3.2",
         "@types/mocha": "^9.1.1",
-        "@types/node": "^18.0.0",
+        "@types/node": "^26.0.1",
         "@types/steam-user": "^4.26.4",
         "@types/uuid": "^8.3.4",
         "@types/validator": "^13.7.6",
@@ -45,7 +45,8 @@
         "ts-mocha": "^10.0.0",
         "ts-node": "^10.8.1",
         "ts-node-dev": "^2.0.0",
-        "typescript": "^4.9.5",
-        "tslib": "^2.4.0"
+        "tslib": "^2.4.0",
+        "tsx": "^4.22.4",
+        "typescript": "^6.0.3"
     }
 }

@@ -3,7 +3,7 @@ import { CampaignLevel } from "./CampaignLevel";
 import { LevelCode, levelCodeEqual, parseLevelCode } from "../LevelCode";
 import { campaignBuckets } from "./Buckets";
 import { asyncSetTimeout } from "../utils/asyncTimeout";
-import { Leaderboard, LeaderboardType } from "../LeaderboardInterface";
+import { GameFilter, Leaderboard, LeaderboardType } from "../LeaderboardInterface";
 import { database, userDB } from "./Lmdb";
 import RateLimit from "../utils/RateLimit";
 import SteamUser, { EResult } from "steam-user";
@@ -100,7 +100,7 @@ export class CampaignManager {
             console.error(
                 `[CacheManager] CRITICAL leaderboard id missing: ${level.compactName()} ${boardName} ${leaderboardType}`
             );
-            if (!this.reloadId(level, leaderboardType)) return null;
+            if (!(await this.reloadId(level, leaderboardType))) return null;
             id = database.get("id:" + boardName);
             return id ?? null;
         }
@@ -111,7 +111,7 @@ export class CampaignManager {
         const boardName = level.getLeaderboardName(leaderboardType);
         let board: ClientLBSFindOrCreateLBResponse;
         try {
-            board = await steamUser.GetLeaderboard(boardName);
+            board = await steamUser.GetLeaderboard(boardName, level.appId());
         } catch (e) {
             console.error(`[CacheManager] ERR unable to get leaderboard id.`);
             return false;
@@ -164,6 +164,13 @@ export class CampaignManager {
             );
             return;
         }
+        if (id === 0) {
+            // Retry again in an hour
+            console.error(
+                `[CacheManager] ERR, leaderboard id is 0: ${level.compactName()} (${leaderboardType})`
+            );
+            return;
+        }
 
         const oldBoard = level.get(leaderboardType);
 
@@ -174,7 +181,9 @@ export class CampaignManager {
                 id,
                 0,
                 1000,
-                SteamUser.ELeaderboardDataRequest.Global
+                SteamUser.ELeaderboardDataRequest.Global,
+                undefined,
+                level.appId()
             );
         } catch (e: any) {
             console.error(
@@ -231,11 +240,19 @@ export class CampaignManager {
 
         await this.reloadType(level, "any", reload_ids, rateLimit);
         await this.reloadType(level, "unbreaking", reload_ids, rateLimit);
-        await this.reloadType(level, "stress", reload_ids, rateLimit);
+        if (!level.isPB2()) await this.reloadType(level, "stress", reload_ids, rateLimit);
 
         if (reload_ids) {
             await database.put("idt:" + level.lmdbKey(), Date.now());
         }
+    }
+
+    levelsByGame(game: GameFilter): CampaignLevel[] {
+        return this.campaignLevels.filter(
+            level => game == null ||
+                     game == "all" ||
+                     (game == "pb2" && level.isPB2()) ||
+                     (game == "pb3" && !level.isPB2()))
     }
 }
 

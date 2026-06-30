@@ -8,6 +8,7 @@ import { steamUser } from "./SteamUser";
 import SteamUser from "steam-user";
 import RateLimit from "../utils/RateLimit";
 import { LeaderboardType } from "../LeaderboardInterface";
+import { APP_ID, PB2_APP_ID } from "../Consts";
 
 export class CampaignLevel extends BaseLevel {
     info: CampaignLevelInfo;
@@ -44,10 +45,14 @@ export class CampaignLevel extends BaseLevel {
         return this.timeUntilNextReload() <= 0;
     }
 
+    isPB2() : boolean { return this.info.pb2 }
+
     getLeaderboardName(leaderboardType: LeaderboardType) {
         let postfix = "";
-        if (leaderboardType !== "any") postfix = "_" + leaderboardType;
-        return `${this.info.id}${postfix}`;
+        let prefix = this.info.pb2 ? "00_" : "";
+        // PB2 adds prefix for any and unbreaking
+        if (leaderboardType !== "any" || this.info.pb2) postfix = "_" + leaderboardType;
+        return `${prefix}${this.info.id}${postfix}`;
     }
 }
 

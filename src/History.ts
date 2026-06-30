@@ -1,5 +1,5 @@
 import { createCanvas } from "canvas";
-import { LeaderboardEntry, LeaderboardType, OldestEntry } from "./LeaderboardInterface";
+import { GameFilter, LeaderboardEntry, LeaderboardType, OldestEntry } from "./LeaderboardInterface";
 import { groupBy } from "./Oldest";
 import { CampaignLevel } from "./resources/CampaignLevel";
 import { DateTime } from "luxon";
@@ -9,6 +9,7 @@ import { GlobalHistory, GlobalHistoryEntry } from "./resources/GlobalHistory";
 import { ScoringMode } from "./GlobalLeaderboard";
 import { SumOfBestHistory, SumOfBestHistoryEntry } from "./resources/SumOfBestHistory";
 import { World } from "./LevelCode";
+import { WorldFilter } from "./utils/WorldFilter";
 
 export interface TimelineScore {
     score: number;
@@ -167,20 +168,22 @@ export function getTimeline(level: CampaignLevel, type: LeaderboardType, include
 
 export function getGlobalTimeline(
     type: LeaderboardType,
-    world: World | null,
+    world: WorldFilter | null,
     scoringMode: ScoringMode,
-    includeTies: boolean
+    includeTies: boolean,
+    game: GameFilter
 ) {
-    const history = GlobalHistory.get(type, world, scoringMode);
+    const history = GlobalHistory.get(type, world, scoringMode, game);
     return createGlobalTimeline(history, includeTies);
 }
 
 export function getSumOfBestTimeline(
     type: LeaderboardType,
-    world: World | null,
-    includeTies: boolean
+    world: WorldFilter | null,
+    includeTies: boolean,
+    game: GameFilter
 ) {
-    const history = SumOfBestHistory.get(type, world);
+    const history = SumOfBestHistory.get(type, world, game);
     return createSumOfBestTimeline(history, includeTies);
 }
 

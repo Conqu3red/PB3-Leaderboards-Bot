@@ -31,6 +31,7 @@ async function otherStuff() {
         type: "any",
         levelCategory: "all",
         scoringMode: "rank",
+        game: "all"
     });
     console.timeEnd("globalBoard");
     if (globalBoard) {
@@ -44,6 +45,7 @@ async function otherStuff() {
         type: "any",
         levelCategory: "all",
         scoringMode: "score",
+        game: "all"
     });
     console.timeEnd("globalBoard");
 

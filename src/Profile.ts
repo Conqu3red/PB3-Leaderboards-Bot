@@ -1,5 +1,5 @@
-import { findUser, GlobalEntry, globalLeaderboard } from "./GlobalLeaderboard";
-import { LeaderboardEntry, LeaderboardType } from "./LeaderboardInterface";
+import { findUser, GlobalEntry, globalLeaderboard, LevelCategory, ScoringMode } from "./GlobalLeaderboard";
+import { GameFilter, LeaderboardEntry, LeaderboardType } from "./LeaderboardInterface";
 import { cacheManager } from "./resources/CacheManager";
 import { CampaignLevel } from "./resources/CampaignLevel";
 import { BaseLevel } from "./resources/Level";
@@ -43,10 +43,12 @@ export interface Profile {
 
 export interface Options {
     type: LeaderboardType;
+    game: GameFilter;
 }
 
 export const defaultOptions: Options = {
     type: "any",
+    game: "all"
 };
 
 export const scoreCountThresholds = [1, 10, 100, 1000];
@@ -65,8 +67,8 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
     );
 
     const levels = [
-        ...cacheManager.campaignManager.campaignLevels,
-        ...cacheManager.campaignManager.weeklyLevels,
+        ...cacheManager.campaignManager.levelsByGame(options.game),
+        ...(options.game == "pb2" ? [] : cacheManager.campaignManager.weeklyLevels),
     ];
 
     for (const level of levels) {
@@ -100,39 +102,23 @@ export async function getProfile(user: UserFilter, options?: Options): Promise<P
 
     if (!owner) return null;
 
+    const getGlobalEntry = async (levelCategory: LevelCategory, scoringMode: ScoringMode, game: GameFilter) => {
+        return findUser(
+            (await globalLeaderboard({
+                levelCategory,
+                type: options.type,
+                scoringMode,
+                game
+            })) ?? [],
+            owner
+        )
+    }
+
     const globalPositions: GlobalPositions = {
-        all_rank: findUser(
-            (await globalLeaderboard({
-                levelCategory: "all",
-                type: options.type,
-                scoringMode: "rank",
-            })) ?? [],
-            owner
-        ),
-        all_score: findUser(
-            (await globalLeaderboard({
-                levelCategory: "all",
-                type: options.type,
-                scoringMode: "score",
-            })) ?? [],
-            owner
-        ),
-        weekly_rank: findUser(
-            (await globalLeaderboard({
-                levelCategory: "weekly",
-                type: options.type,
-                scoringMode: "score",
-            })) ?? [],
-            owner
-        ),
-        weekly_score: findUser(
-            (await globalLeaderboard({
-                levelCategory: "weekly",
-                type: options.type,
-                scoringMode: "score",
-            })) ?? [],
-            owner
-        ),
+        all_rank: await getGlobalEntry("all", "rank", options.game),
+        all_score: await getGlobalEntry("all", "score", options.game),
+        weekly_rank: await getGlobalEntry("weekly", "rank", options.game),
+        weekly_score: await getGlobalEntry("weekly", "score", options.game),
     };
 
     return {

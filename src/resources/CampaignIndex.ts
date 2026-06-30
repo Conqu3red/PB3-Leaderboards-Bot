@@ -1,5 +1,6 @@
 import { LevelCode, parseLevelCode } from "../LevelCode";
 import campaignLevels from "../../json/campaign_levels.json";
+import pb2CampaignLevels from "../../json/pb2_campaign_levels.json";
 
 interface StoredCampaignLevelInfo {
     id: string;
@@ -13,22 +14,17 @@ export interface CampaignLevelInfo {
     code: LevelCode;
     name: string;
     budget: number;
+    pb2: boolean;
 }
 
 export async function loadCampaignLevelInfos(): Promise<CampaignLevelInfo[]> {
-    let data: StoredCampaignLevelInfo[] = campaignLevels;
+    let data: StoredCampaignLevelInfo[] = pb2CampaignLevels.concat(campaignLevels);
 
-    return data.map((info) => {
-        return {
-            id: info.id,
-            code: parseLevelCode(info.code) ?? {
-                world: "CR",
-                level: -1,
-            },
-            name: info.name,
-            budget: info.budget,
-        };
-    });
+    const defaultCode: LevelCode = {world: "CR", level: -1, challenge: false}
+
+    let pb2 = pb2CampaignLevels.map(info => ({...info, pb2: true, code: parseLevelCode(info.code) ?? defaultCode}));
+    let pb3 = campaignLevels.map(info => ({...info, pb2: false, code: parseLevelCode(info.code) ?? defaultCode}));
+    return pb2.concat(pb3)
 }
 
 /*

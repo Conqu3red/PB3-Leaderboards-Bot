@@ -52,4 +52,8 @@ export class WeeklyLevel extends BaseLevel {
         if (leaderboardType !== "any") postfix = "_" + leaderboardType;
         return `${this.info.id}${postfix}`;
     }
+
+    isPB2(): boolean {
+        return false; // TODO: add PB2 weeklies! Might be easier to have seperate class.
+    }
 }

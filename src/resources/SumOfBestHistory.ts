@@ -1,11 +1,11 @@
 import { DateTime } from "luxon";
 import { GlobalEntry, ScoringMode, globalLeaderboard } from "../GlobalLeaderboard";
-import { LeaderboardType, OldestEntry } from "../LeaderboardInterface";
+import { GameFilter, LeaderboardType, OldestEntry } from "../LeaderboardInterface";
 import { database } from "./Lmdb";
 import { OLDEST_RANK_LIMIT } from "../Consts";
 import { sumOfBest } from "../SumOfBest";
 import { WORLDS, World } from "../LevelCode";
-import { parseWorldFilter } from "../utils/WorldFilter";
+import { formatWorldFilter, GAME_WORLDFILTERS, parseWorldFilter, VALID_WORLDFILTER_STRINGS, WorldFilter } from "../utils/WorldFilter";
 
 export interface SumOfBestHistoryEntry {
     time: number; // epoch seconds
@@ -20,17 +20,18 @@ export class SumOfBestHistory {
         return this.RELOAD_FREQUENCY - (Date.now() - this.lastReloadTimeMs);
     }
 
-    static get(type: LeaderboardType, world: World | null): SumOfBestHistoryEntry[] {
-        const board: SumOfBestHistoryEntry[] | undefined = database.get(this.lmdbKey(type, world));
+    static get(type: LeaderboardType, world: WorldFilter | null, game: GameFilter): SumOfBestHistoryEntry[] {
+        const board: SumOfBestHistoryEntry[] | undefined = database.get(this.lmdbKey(type, world, game));
         return board ?? [];
     }
 
-    static async set(type: LeaderboardType, world: World | null, data: SumOfBestHistoryEntry[]) {
-        await database.put(this.lmdbKey(type, world), data);
+    static async set(type: LeaderboardType, world: WorldFilter | null, game: GameFilter, data: SumOfBestHistoryEntry[]) {
+        await database.put(this.lmdbKey(type, world, game), data);
     }
 
-    static lmdbKey(type: LeaderboardType, world: World | null): string {
-        return `sob:${type}:${world ?? ""}`;
+    static lmdbKey(type: LeaderboardType, world: WorldFilter | null, game: GameFilter): string {
+        const gameString = (game == "pb3" || world) ? "" : ":" + game
+        return `sob:${type}:${formatWorldFilter(world)}${gameString}`;
     }
 
     static lmdbTimeKey(type: LeaderboardType, world: World | null): string {
@@ -39,20 +40,26 @@ export class SumOfBestHistory {
 
     static async reloadAll() {
         const types: LeaderboardType[] = ["any", "unbreaking", "stress"];
+        const gameFilters: GameFilter[] = ["all", "pb2", "pb3"];
 
         for (const type of types) {
-            const sob = await sumOfBest(type);
-            const history = this.updateHistory(this.get(type, null), sob.overall);
-            await this.set(type, null, history);
-            console.log(`[CacheManager] SoB History ${type} updated.`);
+            // All levels:
+            for (const gameGroup of gameFilters) {
+                if (gameGroup != "pb3" && type == "stress") continue;
 
-            // Individual world
-            for (const world of WORLDS) {
+                const sob = await sumOfBest(type, [], gameGroup);
+                const history = this.updateHistory(this.get(type, null, gameGroup), sob.overall);
+                await this.set(type, null, gameGroup, history);
+                console.log(`[CacheManager] SoB History ${type} updated.`);
+            }
+
+            // Individual worlds:
+            for (const world of VALID_WORLDFILTER_STRINGS) {
                 const filter = parseWorldFilter(world);
                 if (!filter) continue;
                 const sob = await sumOfBest(type, [filter]);
-                const history = this.updateHistory(this.get(type, world), sob.overall);
-                await this.set(type, world, history);
+                const history = this.updateHistory(this.get(type, filter, "all"), sob.overall);
+                await this.set(type, filter, "all", history);
                 console.log(`[CacheManager] SoB History ${type} (world ${world}) updated.`);
             }
         }

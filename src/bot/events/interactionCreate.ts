@@ -4,7 +4,7 @@ import { Event } from "../structures/Event";
 
 export default new Event("interactionCreate", async (interaction) => {
     // Chat Input Commands
-    if (interaction.isCommand()) {
+    if (interaction.isChatInputCommand()) {
         const command = bot.commands.get(interaction.commandName);
         if (!command) return interaction.followUp("You have used a non existent command");
 

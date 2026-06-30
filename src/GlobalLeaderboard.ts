@@ -1,11 +1,11 @@
-import { LeaderboardType } from "./LeaderboardInterface";
+import { GameFilter, LeaderboardType } from "./LeaderboardInterface";
 import { cacheManager } from "./resources/CacheManager";
 import { CampaignLevel } from "./resources/CampaignLevel";
 import { WeeklyLevel } from "./resources/WeeklyLevel";
 import { CanvasTable, CTConfig, CTData, CTColumn } from "canvas-table";
 import { createCanvas } from "canvas";
 import { N_ENTRIES } from "./Consts";
-import { codeMatchesWorldFilters } from "./utils/WorldFilter";
+import { codeMatchesWorldFilters, WorldFilter } from "./utils/WorldFilter";
 import SteamUsernames from "./resources/SteamUsernameHandler";
 import { FormatScore } from "./utils/Format";
 import rankToScore from "../json/rank_to_score.json";
@@ -24,7 +24,8 @@ export interface GlobalOptions {
     type: LeaderboardType;
     levelCategory: LevelCategory;
     scoringMode: ScoringMode;
-    worldFilters?: World[];
+    worldFilters?: WorldFilter[];
+    game: GameFilter;
     week?: number;
 }
 
@@ -32,6 +33,7 @@ export const defaultOptions: GlobalOptions = {
     type: "any",
     levelCategory: "all",
     scoringMode: "rank",
+    game: "all"
 };
 
 function grouping(baseScore: number, baseRank: number, repeat: number, rank: number) {
@@ -99,7 +101,7 @@ export async function globalLeaderboard(options?: GlobalOptions): Promise<Global
     options = options ?? defaultOptions;
     let levels: (CampaignLevel | WeeklyLevel)[] =
         options.levelCategory == "all"
-            ? cacheManager.campaignManager.campaignLevels
+            ? cacheManager.campaignManager.levelsByGame(options.game)
             : cacheManager.campaignManager.weeklyLevels;
 
     if (

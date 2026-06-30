@@ -7,6 +7,7 @@ import {
     ComponentType,
     InteractionCollector,
     Message,
+    MessageEditOptions,
     MessagePayload,
     MessagePayloadOption,
 } from "discord.js";
@@ -55,7 +56,7 @@ export const arrowComponents = new ActionRowBuilder<ButtonBuilder>().addComponen
     },
 ]; */
 
-export type EditMessageType = string | MessagePayload | MessagePayloadOption;
+export type EditMessageType = string | MessagePayload | MessageEditOptions;
 
 export abstract class PagedResponder {
     client: ExtendedClient;

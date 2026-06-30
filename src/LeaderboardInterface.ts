@@ -37,3 +37,4 @@ export interface WeeklyLevelInfo {
 }
 
 export type LeaderboardType = "any" | "unbreaking" | "stress";
+export type GameFilter = "all" | "pb2" | "pb3";

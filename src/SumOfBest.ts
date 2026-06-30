@@ -1,7 +1,7 @@
-import { LeaderboardType } from "./LeaderboardInterface";
+import { GameFilter, LeaderboardType } from "./LeaderboardInterface";
 import { World } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
-import { codeMatchesWorldFilters } from "./utils/WorldFilter";
+import { codeMatchesWorldFilters, WorldFilter } from "./utils/WorldFilter";
 
 export interface SumsOfBest {
     overall: number;
@@ -10,14 +10,15 @@ export interface SumsOfBest {
 
 export async function sumOfBest(
     type: LeaderboardType,
-    worldFilters?: World[]
+    worldFilters?: WorldFilter[],
+    game?: GameFilter
 ): Promise<SumsOfBest> {
     let sumsOfBest: SumsOfBest = {
         overall: 0,
         levelCount: 0,
     };
 
-    for (const level of cacheManager.campaignManager.campaignLevels) {
+    for (const level of cacheManager.campaignManager.levelsByGame(game ?? "all")) {
         if (
             worldFilters &&
             worldFilters.length > 0 &&

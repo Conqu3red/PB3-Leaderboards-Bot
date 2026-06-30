@@ -1,4 +1,4 @@
-import { Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
+import { GameFilter, Leaderboard, LeaderboardType } from "../../../LeaderboardInterface";
 import { encodeLevelCode, LevelCode, World } from "../../../LevelCode";
 import { cacheManager } from "../../../resources/CacheManager";
 import { CampaignLevel } from "../../../resources/CampaignLevel";
@@ -15,7 +15,7 @@ import { WeeklyLevel } from "../../../resources/WeeklyLevel";
 import { matchesUserFilter, UserFilter } from "../../../utils/userFilter";
 import { pickUserFilter, pickUserFilterError } from "../../utils/pickUserFilter";
 import { sumOfBest } from "../../../SumOfBest";
-import { parseManyWorldFilters } from "../../../utils/WorldFilter";
+import { parseManyWorldFilters, WorldFilter } from "../../../utils/WorldFilter";
 import { FormatScore } from "../../../utils/Format";
 import { EMBED_AUTHOR, EMBED_COLOR } from "../../structures/EmbedStyles";
 
@@ -37,6 +37,19 @@ export default new Command({
         )
         .addStringOption((option) =>
             option
+                .setName("game")
+                .setDescription(
+                    "Which games to include leaderboards from"
+                )
+                .setChoices(
+                    { name: "all", value: "all" },
+                    { name: "pb2", value: "pb2" },
+                    { name: "pb3", value: "pb3" }
+                )
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
                 .setName("world")
                 .setDescription("Display for specific world(s)")
                 .setRequired(false)
@@ -45,9 +58,12 @@ export default new Command({
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
+        let gameFilter = (args.getString("game", false) ?? "all") as GameFilter;
         const world = args.getString("world", false);
 
-        let worldFilters: World[] = [];
+        if (type === "stress") gameFilter = "pb3"; // Only pb3 levels have stress leaderboards
+
+        let worldFilters: WorldFilter[] = [];
         if (world) {
             worldFilters = parseManyWorldFilters(world);
             if (worldFilters.length === 0) {
@@ -56,7 +72,7 @@ export default new Command({
             }
         }
 
-        const sumsOfBest = await sumOfBest(type, worldFilters);
+        const sumsOfBest = await sumOfBest(type, worldFilters, gameFilter);
 
         const worlds = `World: ${worldFilters.join(", ")}`;
 

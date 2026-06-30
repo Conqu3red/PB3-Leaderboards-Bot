@@ -1,25 +1,14 @@
 export interface LevelCode {
     world: World;
     level: number;
+    challenge: boolean;
 }
 
-export const LEVEL_REGEX = /(\w+)-?(\d+)/i;
+export const LEVEL_REGEX = /(\w+)-?(\d+)(c?)/i;
 
 export const WORLDS = [
-    "CR",
-    "MM",
-    "RB",
-    "BB",
-    "VT",
-    "LL",
-    "RMT",
-    "SC",
-    "DS",
-    "FD",
-    "TT",
-    "RTA",
-    "AT",
-    "FR",
+    "1", "2", "3", "4", "5", "6", "B1", "B2", // PB2 Worlds
+    "CR", "MM", "RB", "BB", "VT", "LL", "RMT", "SC", "DS", "FD", "TT", "RTA", "AT", "FR" // PB3 Worlds
 ] as const;
 
 export type World = (typeof WORLDS)[number];
@@ -40,15 +29,16 @@ export function parseLevelCode(code: string): LevelCode | null {
     return {
         world: world,
         level,
+        challenge: match[3].length > 0 
     };
 }
 
 export function levelCodeEqual(code: LevelCode, other: LevelCode): boolean {
-    return code.world === other.world && code.level === other.level;
+    return code.world === other.world && code.level === other.level && code.challenge == other.challenge;
 }
 
 export function encodeLevelCode(code: LevelCode): string {
-    return `${code.world}-${code.level.toString().padStart(2, "0")}`;
+    return `${code.world}-${code.level.toString().padStart(2, "0")}${code.challenge ? 'c' : ''}`;
 }
 
 export function isSecretWord(code: LevelCode): boolean {
