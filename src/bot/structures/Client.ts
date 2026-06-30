@@ -29,7 +29,10 @@ export class ExtendedClient extends Client {
     }
 
     async importFile(filePath: string) {
-        return (await import(pathToFileURL(filePath).href)).default;
+        let data = (await import(pathToFileURL(filePath).href));
+        let result = data.default;
+        if (result.default) result = result.default;
+        return result;
     }
 
     async registerCommands(commands: ApplicationCommandDataResolvable[]) {
