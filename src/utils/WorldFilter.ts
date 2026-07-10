@@ -17,7 +17,7 @@ export interface WorldFilter {
 export function parseWorldFilter(filter: string): WorldFilter | null {
     filter = filter.toUpperCase().replace(/\s/g, "");
     if (!VALID_WORLDFILTER_STRINGS.includes(filter)) return null;
-    const match = filter.match(/(\d+|B\d|[a-z]+)(C?)/)
+    const match = filter.match(/(\d+|B\d|[A-Z]+)(C?)/)
     if (!match) return null;
     return {world: match[1], challenge: match[2].length > 0}
 }

@@ -53,7 +53,7 @@ export class WeeklyLevel extends BaseLevel {
 
     getLeaderboardName(leaderboardType: LeaderboardType) {
         let postfix = "";
-        if (this.week > 150) postfix = `_${this.loopNumber()}`;
+        if (this.week > 150) postfix = `${this.loopNumber().toString().padStart(2, "0")}`;
         if (leaderboardType !== "any") postfix += "_" + leaderboardType;
         return `${this.info.id}${postfix}`;
     }

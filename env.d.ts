@@ -5,6 +5,7 @@ declare global {
             STEAM_WEBAPI_KEY: string;
             STEAM_USERNAME: string;
             STEAM_PASSWORD: string;
+            ALERTS_CHANNEL: string | undefined;
         }
     }
 }

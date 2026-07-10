@@ -3,7 +3,7 @@ import { CampaignLevel } from "./CampaignLevel";
 import { LevelCode, levelCodeEqual, parseLevelCode } from "../LevelCode";
 import { campaignBuckets } from "./Buckets";
 import { asyncSetTimeout } from "../utils/asyncTimeout";
-import { GameFilter, Leaderboard, LeaderboardType } from "../LeaderboardInterface";
+import { GameFilter, Leaderboard, LeaderboardEntry, LeaderboardType } from "../LeaderboardInterface";
 import { database, userDB } from "./Lmdb";
 import RateLimit from "../utils/RateLimit";
 import SteamUser, { EResult } from "steam-user";
@@ -12,12 +12,15 @@ import { updateHistoryData } from "../LeaderboardProcessors";
 import SteamUsernames, { PriorityLevel, UpdateResult } from "./SteamUsernameHandler";
 import { steamUser } from "./SteamUser";
 import fs from "fs";
-import { DATA_DIR } from "../Consts";
+import { DATA_DIR, N_ENTRIES } from "../Consts";
 import { GlobalHistory } from "./GlobalHistory";
 import { SumOfBestHistory } from "./SumOfBestHistory";
 import { WeeklyLevel } from "./WeeklyLevel";
 import { weeklyIndex } from "./WeeklyIndex";
 import { BaseLevel } from "./Level";
+import { sendNewScores } from "../bot/newScores";
+import { NewScore } from "../NewScore";
+import { ExtendedClient } from "../bot/structures/Client";
 
 export class CampaignManager {
     static CAMPAIGN_LEVEL_RELOAD_INTERVAL = 1 * 60 * 60 * 1000; // 1 hour
@@ -25,8 +28,13 @@ export class CampaignManager {
     static OLD_WEEKLY_LEVEL_RELOAD_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
     static RATELIMIT_MS = 1000;
     static ID_RELOAD_INTERVAL = 80 * 60 * 60 * 1000; // 80 hours
+    static MAX_SCORE_QUEUE_DURATION = 5 * 60 * 1000; // 5 minutes
     campaignLevels: CampaignLevel[] = [];
     weeklyLevels: WeeklyLevel[] = [];
+
+    newScoreQueuedAt: number = 0;
+    newScoreQueue: NewScore[] = [];
+    bot?: ExtendedClient
 
     async populate() {
         let levelInfos = await loadCampaignLevelInfos();
@@ -43,6 +51,8 @@ export class CampaignManager {
             await this.populate();
             reloadRequired = true;
         }
+
+        this.maybeSendNewBestScores();
 
         // Steam rate-limit of 1 per second
 
@@ -62,7 +72,8 @@ export class CampaignManager {
     async timeToNextReload(): Promise<number> {
         return Math.min(
             ...(await Promise.all(this.campaignLevels.map((level) => level.timeUntilNextReload()))),
-            ...(await Promise.all(this.weeklyLevels.map((level) => level.timeUntilNextReload())))
+            ...(await Promise.all(this.weeklyLevels.map((level) => level.timeUntilNextReload()))),
+            this.timeToNextSendNewScores()
         );
     }
 
@@ -225,6 +236,13 @@ export class CampaignManager {
             await level.setHistory(newHistory, leaderboardType);
         });
 
+        // Queue up changes, if there is a new #1 score
+        const prevBest = oldBoard.top1000.at(0);
+        const newBest = newBoard.top1000.at(0);
+        if (newBest && newBest.score !== prevBest?.score) {
+            this.newBestScore(level, leaderboardType, prevBest, newBest);
+        }
+
         for (const score of newBoard.top1000) {
             if (score.rank <= 25)
                 SteamUsernames.enqueueId(score.steam_id_user, PriorityLevel.TOP25);
@@ -252,9 +270,33 @@ export class CampaignManager {
         await this.reloadType(level, "unbreaking", reload_ids, rateLimit);
         if (!level.isPB2()) await this.reloadType(level, "stress", reload_ids, rateLimit);
 
+        this.maybeSendNewBestScores();
+
         if (reload_ids) {
             await database.put("idt:" + level.lmdbKey(), Date.now());
         }
+    }
+
+    newBestScore(level: BaseLevel, type: LeaderboardType, oldScore: LeaderboardEntry | undefined, newScore: LeaderboardEntry) {
+        console.log(`[CacheManager] Queue announcing new best score on ${level.compactName()}: ${oldScore?.score} -> ${newScore.score}`)
+        if (this.newScoreQueue.length == 0) this.newScoreQueuedAt = Date.now();
+        this.newScoreQueue.push({level, type, oldScore, newScore});
+    }
+
+    maybeSendNewBestScores() {
+        const queue_ready = Date.now() - this.newScoreQueuedAt > CampaignManager.MAX_SCORE_QUEUE_DURATION;
+        if ((queue_ready && this.newScoreQueue.length > 0) || this.newScoreQueue.length >= N_ENTRIES) {
+            const scores = this.newScoreQueue.splice(0, N_ENTRIES);
+            if (this.bot) sendNewScores(this.bot, scores);
+            else {
+                console.log(`[CacheManager] Not initialised with a bot - ignoring New best Score announcement.`);
+            }
+        }
+    }
+
+    timeToNextSendNewScores(): number {
+        if (this.newScoreQueue.length == 0) return Infinity;
+        return CampaignManager.MAX_SCORE_QUEUE_DURATION - (Date.now() - this.newScoreQueuedAt);
     }
 
     levelsByGame(game: GameFilter): CampaignLevel[] {
@@ -332,6 +374,8 @@ export class CacheManager {
                     GlobalHistory.timeUntilNextReload(),
                     SumOfBestHistory.timeUntilNextReload()
                 );
+
+                nextReloadTime = Math.max(nextReloadTime, 0);
 
                 console.log(`[CacheManager] Next reload in ${nextReloadTime / 1000}s`);
                 await asyncSetTimeout(nextReloadTime);

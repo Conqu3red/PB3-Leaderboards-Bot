@@ -166,6 +166,7 @@ export default class SteamUsernames {
         }
 
         const updateTime = Date.now();
+        let remaining = new Set(ids);
 
         await userDB.transaction(async () => {
             for (const player of response.players) {
@@ -174,6 +175,11 @@ export default class SteamUsernames {
                     this.stripTags(player.personaname),
                     updateTime
                 );
+                remaining.delete(player.steamid);
+            }
+            if (remaining.size > 0) console.log(`[SteamUsernames] No results for ${remaining.size} ids`);
+            for (const id of remaining) {
+                await this.setUpdated(id, updateTime);
             }
         });
 
@@ -203,6 +209,10 @@ export default class SteamUsernames {
 
     static async setUsername(steam_id: string, username: string, time: number) {
         await userDB.put(steam_id, username);
+        await userDB.put("t" + steam_id, time);
+    }
+    
+    static async setUpdated(steam_id: string, time: number) {
         await userDB.put("t" + steam_id, time);
     }
 

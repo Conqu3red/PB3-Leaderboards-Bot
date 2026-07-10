@@ -8,6 +8,7 @@ import { LevelCode, levelCodeEqual } from "./LevelCode";
 import { cacheManager } from "./resources/CacheManager";
 import { matchesUserFilter, UserFilter } from "./utils/userFilter";
 import SteamUsernames from "./resources/SteamUsernameHandler";
+import { FormatScore } from "./utils/Format";
 
 export interface RecentEntry extends OldestEntry {
     compactName: string;
@@ -16,6 +17,7 @@ export interface RecentEntry extends OldestEntry {
 export interface RecentFilters {
     userFilter?: UserFilter;
     levelCode?: LevelCode;
+    maxRank?: number;
 }
 
 export async function getRecent(
@@ -34,7 +36,8 @@ export async function getRecent(
                     (entry) =>
                         !entry.cheated &&
                         (!filters.userFilter ||
-                            matchesUserFilter(filters.userFilter, entry.steam_id_user))
+                            matchesUserFilter(filters.userFilter, entry.steam_id_user)) &&
+                        (!filters.maxRank || entry.rank <= filters.maxRank)
                 )
                 .map((entry) => {
                     return { ...entry, compactName: level.compactName() };
@@ -53,9 +56,9 @@ export async function getRecent(
     });
 }
 
-export const BOARD_DIMENSIONS: [width: number, height: number] = [350, 350];
+export const BOARD_DIMENSIONS: [width: number, height: number] = [450, 350];
 
-export async function renderRecentCanvas(board: RecentEntry[], index: number): Promise<Canvas> {
+export async function renderRecentCanvas(board: RecentEntry[], index: number, type: LeaderboardType): Promise<Canvas> {
     const canvas = createCanvas(...BOARD_DIMENSIONS);
 
     const columns: CTColumn[] = [
@@ -63,6 +66,7 @@ export async function renderRecentCanvas(board: RecentEntry[], index: number): P
         { title: "Level", options: { color: "#ffffff" } },
         { title: "Name", options: { color: "#ffffff", maxWidth: 150 } },
         { title: "Time", options: { color: "#ffffff", textAlign: "right" } },
+        { title: "Score", options: { color: "#ffffff", textAlign: "right" } },
         { title: "Breaks", options: { color: "#ffffff" } },
     ];
 
@@ -80,6 +84,7 @@ export async function renderRecentCanvas(board: RecentEntry[], index: number): P
             style: "short",
             unit: ["days", "hours", "minutes", "seconds"],
         }) ?? "",
+        FormatScore(entry.score, type),
         entry.didBreak ? "✱" : "",
     ]);
 
@@ -107,7 +112,7 @@ export async function renderRecentCanvas(board: RecentEntry[], index: number): P
     return canvas;
 }
 
-export async function renderRecent(board: RecentEntry[], index: number): Promise<Buffer> {
-    const canvas = await renderRecentCanvas(board, index);
+export async function renderRecent(board: RecentEntry[], index: number, type: LeaderboardType): Promise<Buffer> {
+    const canvas = await renderRecentCanvas(board, index, type);
     return canvas.toBuffer();
 }

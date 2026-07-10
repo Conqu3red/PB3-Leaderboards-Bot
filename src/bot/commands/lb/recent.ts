@@ -35,7 +35,7 @@ class PagedLeaderboard extends PagedResponder {
     }
 
     async generateMessage(): Promise<EditMessageType> {
-        let board = await renderRecent(this.data.board, this.page * ENTRIES_PER_PAGE);
+        let board = await renderRecent(this.data.board, this.page * ENTRIES_PER_PAGE, this.data.options.type);
         let uuid = uuidv4();
 
         let attachment = new AttachmentBuilder(board).setName(`${uuid}.png`);
@@ -87,12 +87,21 @@ export default new Command({
         .addStringOption((option) =>
             option.setName("user").setDescription("User to show").setRequired(false)
         )
+        .addIntegerOption((option) =>
+            option
+                .setName("max_rank")
+                .setDescription("Only show scores equal to or below this rank")
+                .setMinValue(1)
+                .setMaxValue(OLDEST_RANK_LIMIT)
+                .setRequired(false)
+        )
         .toJSON(),
     run: async ({ interaction, client, args }) => {
         await interaction.deferReply();
         const levelCode = args.getString("level", false);
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
         const user = args.getString("user", false) ?? undefined;
+        const rank = args.getInteger("max_rank", false);
 
         let userFilter: UserFilter | null = null;
         if (user) {
@@ -107,6 +116,7 @@ export default new Command({
             board: await getRecent(type, {
                 levelCode: levelCode ? parseLevelCode(levelCode) ?? undefined : undefined,
                 userFilter: userFilter ?? undefined,
+                maxRank: rank ?? undefined
             }),
             options: { type },
         });

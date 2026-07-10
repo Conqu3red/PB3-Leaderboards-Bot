@@ -23,6 +23,8 @@ export const bot = new ExtendedClient(botToken, [
     GatewayIntentBits.GuildMessages,
 ]);
 
+cacheManager.campaignManager.bot = bot;
+
 sequelize.sync();
 
 /* (async () => {
