@@ -208,10 +208,9 @@ export default new Command({
         await interaction.deferReply();
         const user = args.getString("user", false);
         const type = (args.getString("type", false) ?? "any") as LeaderboardType;
-        const game = (args.getString("game", false) ?? "all") as GameFilter;
+        let game = (args.getString("game", false) ?? "all") as GameFilter;
 
-        const profileOptions: Options = {type, game};
-
+        
         let userFilter: UserFilter | null = null;
         if (user) {
             userFilter = await pickUserFilter(user);
@@ -222,7 +221,14 @@ export default new Command({
             await pickUserFilterError(interaction);
             return;
         }
-
+        
+        if (type == "stress" && game == "all") game = "pb3";
+        if (type == "stress" && game == "pb2") {
+            await error(interaction, "PB2 does not have stress leaderboards.");
+            return;
+        }
+        
+        const profileOptions: Options = {type, game};
         const profile = await getProfile(userFilter, profileOptions);
         if (!profile) {
             await error(

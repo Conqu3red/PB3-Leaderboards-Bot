@@ -1,4 +1,4 @@
-import { WEEKLIES_PER_SEASON } from "../Consts";
+import { PB3_WEEKLY_MODOLUS, WEEKLIES_PER_SEASON } from "../Consts";
 import { LeaderboardType, WeeklyLevelInfo } from "../LeaderboardInterface";
 import { CampaignManager } from "./CacheManager";
 import { BaseLevel } from "./Level";
@@ -47,9 +47,14 @@ export class WeeklyLevel extends BaseLevel {
         return this.timeUntilNextReload() <= 0;
     }
 
+    loopNumber(): number {
+        return Math.floor((this.week - 1) / PB3_WEEKLY_MODOLUS);
+    }
+
     getLeaderboardName(leaderboardType: LeaderboardType) {
         let postfix = "";
-        if (leaderboardType !== "any") postfix = "_" + leaderboardType;
+        if (this.week > 150) postfix = `_${this.loopNumber()}`;
+        if (leaderboardType !== "any") postfix += "_" + leaderboardType;
         return `${this.info.id}${postfix}`;
     }
 

@@ -232,6 +232,11 @@ export default new Command({
                 return;
             }
 
+            if (type == "stress" && level.isPB2()) {
+                await error(interaction, "PB2 does not have stress leaderboards.");
+                return;
+            }
+
             timeline = getTimeline(level, type, includeTies);
             title = `Timeline for ${encodeLevelCode(level.info.code)}: ${
                 level.info.name
@@ -254,6 +259,13 @@ export default new Command({
                 }
             }
 
+            // Only pb3 levels have stress leaderboards
+            if (type == "stress" && gameFilter == "all") gameFilter = "pb3";
+            if (type == "stress" && gameFilter == "pb2") {
+                await error(interaction, "PB2 does not have stress leaderboards.");
+                return;
+            }
+
             timeline = getGlobalTimeline(type, parsedWorld, scoringMode, includeTies, gameFilter);
 
             const by = scoringMode === "rank" ? "rank" : type === "stress" ? "stress" : "budget";
@@ -273,6 +285,13 @@ export default new Command({
                 } else {
                     await error(interaction, "Invalid world.");
                 }
+            }
+
+            // Only pb3 levels have stress leaderboards
+            if (type == "stress" && gameFilter == "all") gameFilter = "pb3";
+            if (type == "stress" && gameFilter == "pb2") {
+                await error(interaction, "PB2 does not have stress leaderboards.");
+                return;
             }
 
             timeline = getSumOfBestTimeline(type, parsedWorld, includeTies, gameFilter);

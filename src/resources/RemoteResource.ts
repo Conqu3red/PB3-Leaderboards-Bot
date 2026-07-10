@@ -22,7 +22,13 @@ export abstract class RemoteResource<RemoteType> {
     }
 
     url(): string {
-        return `${CDN_URL}/${this.remotePath()}`;
+        const path = this.remotePath();
+        try {
+            new URL(path);
+        } catch {
+            return `${CDN_URL}/${path}`
+        }
+        return path;
     }
 
     async loadFromRemote(): Promise<RemoteType> {
@@ -49,7 +55,7 @@ export abstract class RemoteResource<RemoteType> {
         }
         this.lastReloadTimeMs = Date.now();
         await this.process(remote);
-        console.log(`Reloaded resource ${this.remotePath()}`);
+        console.log(`[CacheManager] Reloaded resource ${this.remotePath()}`);
     }
 
     timeUntilNextReload(): number {

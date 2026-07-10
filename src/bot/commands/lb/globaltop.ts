@@ -185,7 +185,13 @@ export default new Command({
         let gameFilter = (args.getString("game", false) ?? "all") as GameFilter;
 
         if (type === "stress" && score) score *= 100;
-        if (type === "stress") gameFilter = "pb3"; // Only pb3 levels have stress leaderboards
+        
+        // Only pb3 levels have stress leaderboards
+        if (type == "stress" && gameFilter == "all") gameFilter = "pb3";
+        if (type == "stress" && gameFilter == "pb2") {
+            await error(interaction, "PB2 does not have stress leaderboards.");
+            return;
+        }
 
         let worldFilters: WorldFilter[] = [];
         if (world) {

@@ -86,6 +86,11 @@ export default new Command({
             return;
         }
 
+        if (level.isPB2()) {
+            await error(interaction, "Histograms are not available for PB2 levels.");
+            return;
+        }
+
         const allBuckets = week
             ? await getWeeklyBucket(level as WeeklyLevel)
             : await campaignBuckets.get();

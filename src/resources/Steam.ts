@@ -154,6 +154,8 @@ export class ExpandedSteamUser extends SteamUser {
                     );
                     if (result.eresult != SteamUser.EResult.OK) {
                         clearTimeout(timer);
+                        console.log(leaderboard_id, steamids);
+                        console.log(result);
                         reject(Helpers.eresultError(result.eresult));
                     }
 
@@ -203,6 +205,50 @@ export async function LookupUsers(
 
                 clearTimeout(timer);
                 resolve(response as UserLookupResult);
+            }
+        );
+    });
+}
+
+
+export interface PublishedFileResult {
+    publishedfiledetails: PublishedFileDetail[];
+}
+
+export interface PublishedFileDetail {
+    result: number; // Steam EResult
+    publishedfileid: string;
+    preview_url: string;
+    title: string;
+    file_description: string;
+    // Other fields omitted.
+}
+
+export async function GetPublishedFileDetails(
+    api: SteamWebAPI,
+    publishedfileids: string[]
+): Promise<PublishedFileResult> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(
+            () => reject(new Error(`LookupUsers timed out after ${STEAM_TIMEOUT} ms`)),
+            STEAM_TIMEOUT
+        );
+
+        api.get(
+            "IPublishedFileService",
+            "GetDetails",
+            1,
+            {
+                publishedfileids: publishedfileids
+            },
+            (err, response) => {
+                if (err != null) {
+                    clearTimeout(timer);
+                    reject(err);
+                }
+
+                clearTimeout(timer);
+                resolve(response as PublishedFileResult);
             }
         );
     });

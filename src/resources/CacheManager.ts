@@ -128,13 +128,23 @@ export class CampaignManager {
     }
 
     static convertSteamData(entries: ClientLBSGetLBEntriesResponse): Leaderboard {
+        let results = entries.entries.map((entry) => ({
+            steam_id_user: entry.steam_id_user,
+            score: entry.score,
+            didBreak: entry.details != null && (entry.details.readUint32LE(0) & 1) != 0, // After physics patch, all scores have flag 0x02
+            rank: entry.global_rank,
+        }));
+
+        // Resolve ties for rankings
+        for (let i = 0; i < results.length; i++) {
+            results[i].rank = i + 1;
+            if (i > 0 && results[i - 1].score == results[i].score) {
+                results[i].rank = results[i - 1].rank; // propagate tied rank
+            }
+        }
+        
         return {
-            top1000: entries.entries.map((entry) => ({
-                steam_id_user: entry.steam_id_user,
-                score: entry.score,
-                didBreak: entry.details != null && (entry.details.readUint32LE(0) & 1) != 0, // After physics patch, all scores have flag 0x02
-                rank: entry.global_rank,
-            })),
+            top1000: results,
             leaderboard_entry_count: entries.leaderboard_entry_count,
         };
     }

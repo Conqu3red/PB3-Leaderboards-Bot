@@ -87,7 +87,8 @@ export const campaignBuckets = new SimpleResource<CampaignBuckets, ArrayBuffer>(
 );
 
 export const getWeeklyBucket = async (level: WeeklyLevel) => {
-    const resp = await fetch(`${CDN_URL}/buckets/${level.info.id}.bin`);
+    const url = `${CDN_URL}/buckets/${level.info.id}.bin`;
+    const resp = await fetch(url);
     const buf = await resp.arrayBuffer();
     return await parseBucketBuffer(buf);
 };

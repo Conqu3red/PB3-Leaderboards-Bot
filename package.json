@@ -8,7 +8,7 @@
         "agentkeepalive": "^4.2.1",
         "axios": "^0.27.2",
         "binary-parser": "^2.1.0",
-        "canvas": "^2.11.0",
+        "canvas": "^3.2.3",
         "canvas-table": "^0.3.0",
         "discord.js": "^14.26.4",
         "dotenv": "^16.0.1",
@@ -48,5 +48,8 @@
         "tslib": "^2.4.0",
         "tsx": "^4.22.4",
         "typescript": "^6.0.3"
+    },
+    "allowScripts": {
+        "canvas@3.2.3": true
     }
 }

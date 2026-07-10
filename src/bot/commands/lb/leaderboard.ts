@@ -155,6 +155,13 @@ export default new Command({
             await error(interaction, "Unknown level.");
             return;
         }
+
+        // Only pb3 levels have stress leaderboards
+        if (type == "stress" && level.isPB2()) {
+            await error(interaction, "PB2 does not have stress leaderboards.");
+            return;
+        }
+
         const board = level.get(type);
 
         const paged = new PagedLeaderboard(client, interaction, {
