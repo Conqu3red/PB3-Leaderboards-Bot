@@ -36,24 +36,28 @@ export default class Queue<T> {
         this.currentSize *= 2;
     }
 
+    // Called when the queue is 1/4 full. Halve the capacity (leaving it 1/2 full, so it doesn't immediately
+    // grow or shrink again) and copy only the live elements, in order, to the front of the new container.
+    // Previously this copied the whole old capacity and set `tail` to the old capacity, past the end of the
+    // new container: `tail` then never wrapped, every push grew the array, and pushed elements were never
+    // returned by shift().
     private shrink() {
-        var currentSource = this.head;
-        var currentTarget = 0;
-        var newContainer = [];
-        newContainer.length = this.currentSize / 4;
+        const newSize = this.currentSize / 2;
+        const newContainer: T[] = [];
+        newContainer.length = newSize;
 
-        while (currentTarget < this.currentSize) {
-            newContainer[currentTarget] = this.container[currentSource];
+        let currentSource = this.head;
+        for (let i = 0; i < this.internalLength; i++) {
+            newContainer[i] = this.container[currentSource];
             currentSource++;
-            currentTarget++;
             if (currentSource == this.currentSize) {
                 currentSource = 0;
             }
         }
         this.container = newContainer;
         this.head = 0;
-        this.tail = this.currentSize;
-        this.currentSize /= 4;
+        this.tail = this.internalLength == newSize ? 0 : this.internalLength;
+        this.currentSize = newSize;
     }
 
     push(element: T) {
@@ -73,6 +77,7 @@ export default class Queue<T> {
             return null;
         }
         let tmp = this.container[this.head];
+        this.container[this.head] = undefined as T; // release the reference so it can be garbage collected
         this.head++;
         this.internalLength--;
         if (this.head == this.currentSize) {
